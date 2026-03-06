@@ -2,6 +2,7 @@ import relay
 import jsonx
 import openai
 import openai_audio_speech
+import std/strutils
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
