@@ -1,18 +1,14 @@
 import relay
 import jsonx
-import openai_schema
+import ./[core, http]
+import ./schema/chat_schema
 
-export openai_schema
-
-const OpenAIApiUrl = "https://api.openai.com/v1/chat/completions"
+export core
+export chat_schema
 
 type
   ChatCreateParams* = OpenAIChatCompletionsIn
   ChatCreateResult* = OpenAIChatCompletionOut
-
-  OpenAIConfig* = object
-    url*: string = OpenAIApiUrl
-    apiKey*: string
 
 proc partText*(text: sink string): ChatCompletionContentPart =
   ChatCompletionContentPart(
@@ -164,35 +160,15 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     response_format: responseFormat
   )
 
-proc withDefaultHeaders(cfg: OpenAIConfig;
-    headers: sink HttpHeaders = emptyHttpHeaders()): HttpHeaders =
-  result = headers
-  result["Authorization"] = "Bearer " & cfg.apiKey
-  result["Content-Type"] = "application/json"
-
 proc chatRequest*(cfg: OpenAIConfig; params: ChatCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  RequestSpec(
-    verb: hvPost,
-    url: cfg.url,
-    headers: cfg.withDefaultHeaders(headers),
-    body: toJson(params),
-    requestId: requestId,
-    timeoutMs: timeoutMs
-  )
+  jsonPostRequest(cfg, params, requestId, timeoutMs, headers)
 
 proc chatAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: ChatCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  batch.addRequest(
-    verb = hvPost,
-    url = cfg.url,
-    headers = cfg.withDefaultHeaders(headers),
-    body = toJson(params),
-    requestId = requestId,
-    timeoutMs = timeoutMs
-  )
+  jsonPostAdd(batch, cfg, params, requestId, timeoutMs, headers)
 
 proc chatParse*(body: string; dst: var ChatCreateResult): bool =
   try:
@@ -200,9 +176,6 @@ proc chatParse*(body: string; dst: var ChatCreateResult): bool =
     result = true
   except CatchableError:
     result = false
-
-proc isHttpSuccess*(code: int): bool {.inline.} =
-  result = code div 100 == 2
 
 proc raiseAccessorValueError(message: string) {.noinline, noreturn.} =
   raise newException(ValueError, message)

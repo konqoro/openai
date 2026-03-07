@@ -1,7 +1,6 @@
 import std/[base64, os, random, strutils, times]
 import relay
-import openai
-import openai_retry
+import openai/[chat, retry]
 
 {.passL: "-lcurl".}
 

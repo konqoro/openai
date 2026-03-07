@@ -1,6 +1,6 @@
 import std/random
 import relay
-import openai_retry
+import openai/retry
 
 proc main() =
   let policy = defaultRetryPolicy(

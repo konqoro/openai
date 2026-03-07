@@ -1,5 +1,6 @@
 import relay
-import openai, openai_embeddings
+import jsonx
+import openai/embeddings
 
 const GoodResponse = """{
   "object": "list",
@@ -8,6 +9,22 @@ const GoodResponse = """{
       "object": "embedding",
       "index": 0,
       "embedding": [0.1, 0.2, 0.3]
+    }
+  ],
+  "model": "Qwen/Qwen3-Embedding-0.6B",
+  "usage": {
+    "prompt_tokens": 7,
+    "total_tokens": 7
+  }
+}"""
+
+const Base64Response = """{
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": "AQID"
     }
   ],
   "model": "Qwen/Qwen3-Embedding-0.6B",
@@ -43,7 +60,7 @@ proc testEmbeddingRequest() =
     embeddingCreate(
       model = "Qwen/Qwen3-Embedding-0.6B",
       input = "hello",
-      encodingFormat = "float"
+      encodingFormat = EmbeddingEncodingFormat.`float`
     ),
     requestId = 42,
     timeoutMs = 7_000,
@@ -59,6 +76,11 @@ proc testEmbeddingRequest() =
   doAssert req.headers["X-Trace-Id"] == "trace-1"
   doAssert req.body ==
     """{"model":"Qwen/Qwen3-Embedding-0.6B","input":"hello","encoding_format":"float"}"""
+
+proc testEmbeddingEncodingFormatEnum() =
+  let params = embeddingCreate("m", "text", EmbeddingEncodingFormat.base64)
+  doAssert toJson(params) ==
+    """{"model":"m","input":"text","encoding_format":"base64"}"""
 
 proc testEmbeddingBatchAdd() =
   let cfg = sampleConfig()
@@ -78,8 +100,17 @@ proc testEmbeddingParseAndAccessors() =
   doAssert promptTokens(parsed) == 7
   doAssert totalTokens(parsed) == 7
   doAssert embedding(parsed).len == 3
-  doAssert embedding(parsed)[1] == 0.2
+  doAssert embedding(parsed)[1] == 0.2'f32
   expectValueError embedding(parsed, 1)
+
+proc testBase64EmbeddingParseAndAccessors() =
+  var parsed: EmbeddingCreateResult
+  doAssert embeddingParse(Base64Response, parsed)
+  doAssert embeddings(parsed) == 1
+  doAssert parsed.data[0].embedding.kind == EmbeddingContentKind.encoded
+  doAssert embeddingBase64(parsed) == "AQID"
+  expectValueError embedding(parsed)
+  expectValueError embeddingBase64(parsed, 1)
 
 proc testEmbeddingParseFailure() =
   var parsed: EmbeddingCreateResult
@@ -88,5 +119,7 @@ proc testEmbeddingParseFailure() =
 when isMainModule:
   testEmbeddingRequest()
   testEmbeddingBatchAdd()
+  testEmbeddingEncodingFormatEnum()
   testEmbeddingParseAndAccessors()
+  testBase64EmbeddingParseAndAccessors()
   testEmbeddingParseFailure()

@@ -12,7 +12,7 @@ and reading responses, while you keep full control of HTTP via
 - OpenAI wording, Nim ergonomics: `chatCreate`, `userMessageText`,
   `partImageUrl`, `firstText`.
 - Strongly typed JSON mapping via `jsonx` (no dynamic `std/json` trees).
-- Optional retry helpers in `openai_retry`, so policy stays in your app.
+- Optional retry helpers in `openai/retry`, so policy stays in your app.
 - No hidden transport abstraction to fight when scaling or debugging.
 
 ## Install
@@ -77,7 +77,8 @@ echo "tokens=", totalTokens(parsed)
 
 ```nim
 import std/os
-import relay, openai
+import relay
+import openai/chat
 
 {.passL: "-lcurl".}
 
@@ -115,7 +116,8 @@ main()
 
 ```nim
 import std/os
-import relay, openai
+import relay
+import openai/chat
 
 {.passL: "-lcurl".}
 
@@ -238,11 +240,12 @@ let params = chatCreate(
 
 ## Optional Retry Module
 
-`openai_retry` is optional.
+`openai/retry` is optional.
 
 ```nim
 import std/[random, times]
-import relay, openai, openai_retry
+import relay
+import openai/[chat, retry]
 
 proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
     params: ChatCreateParams): ChatCreateResult =
@@ -278,7 +281,7 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
   `completionTokens`, `totalTokens`
 - Retry helpers:
   `defaultRetryPolicy`, `retryDelayMs`, `isRetriableStatus`,
-  `isRetriableTransport` (from `openai_retry`)
+  `isRetriableTransport` (from `openai/retry`)
 
 ## Run Examples
 

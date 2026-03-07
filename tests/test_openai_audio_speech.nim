@@ -1,8 +1,7 @@
+import std/strutils
 import relay
 import jsonx
-import openai
-import openai_audio_speech
-import std/strutils
+import openai/audio_speech
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
@@ -19,16 +18,29 @@ proc testSpeechCreateDefaults() =
 
   doAssert params.model == "hexgrad/Kokoro-82M"
   doAssert params.input == "hello"
+  doAssert params.service_tier == AudioSpeechServiceTier.`default`
   doAssert params.voice == "af_bella"
   doAssert params.response_format == AudioSpeechResponseFormat.wav
   doAssert params.speed == 1.0
+  doAssert params.extra_body.len == 0
 
   let json = toJson(params)
   doAssert json.contains("\"model\":\"hexgrad/Kokoro-82M\"")
   doAssert json.contains("\"input\":\"hello\"")
   doAssert json.contains("\"voice\":\"af_bella\"")
+  doAssert not json.contains("\"service_tier\":")
   doAssert not json.contains("\"response_format\":")
   doAssert not json.contains("\"speed\":")
+  doAssert not json.contains("\"extra_body\":")
+
+proc testSpeechCreateOptionalVoice() =
+  let params = speechCreate(
+    model = "hexgrad/Kokoro-82M",
+    input = "hello"
+  )
+
+  doAssert params.voice.len == 0
+  doAssert not toJson(params).contains("\"voice\":")
 
 proc testSpeechRequest() =
   let cfg = sampleConfig(apiKey = "new-token")
@@ -43,6 +55,7 @@ proc testSpeechRequest() =
       model = "hexgrad/Kokoro-82M",
       input = "chunk text",
       voice = "af_bella",
+      serviceTier = AudioSpeechServiceTier.priority,
       responseFormat = AudioSpeechResponseFormat.mp3,
       speed = 1.25
     ),
@@ -60,11 +73,23 @@ proc testSpeechRequest() =
   doAssert req.headers["X-Trace-Id"] == "trace-1"
 
   let payload = fromJson(req.body, AudioSpeechCreateParams)
+  doAssert payload.service_tier == AudioSpeechServiceTier.priority
   doAssert payload.model == "hexgrad/Kokoro-82M"
   doAssert payload.input == "chunk text"
   doAssert payload.voice == "af_bella"
   doAssert payload.response_format == AudioSpeechResponseFormat.mp3
   doAssert payload.speed == 1.25
+
+proc testSpeechExtraBodyRawJson() =
+  let params = speechCreate(
+    model = "hexgrad/Kokoro-82M",
+    input = "chunk text",
+    voice = "af_bella",
+    extraBody = """{"seed":7,"speaker":"bella","stream":false,"tags":["demo",2]}"""
+  )
+  let json = toJson(params)
+  doAssert json.contains(
+    "\"extra_body\":{\"seed\":7,\"speaker\":\"bella\",\"stream\":false,\"tags\":[\"demo\",2]}")
 
 proc testSpeechAdd() =
   let cfg = sampleConfig()
@@ -89,5 +114,7 @@ proc testSpeechAdd() =
 
 when isMainModule:
   testSpeechCreateDefaults()
+  testSpeechCreateOptionalVoice()
   testSpeechRequest()
+  testSpeechExtraBodyRawJson()
   testSpeechAdd()

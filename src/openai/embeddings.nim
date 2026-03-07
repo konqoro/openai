@@ -1,9 +1,10 @@
 import relay
 import jsonx
-import openai
-import openai_embeddings_schema
+import ./[core, http]
+import ./schema/embeddings_schema
 
-export openai_embeddings_schema
+export core
+export embeddings_schema
 
 const OpenAIEmbeddingsUrl* = "https://api.openai.com/v1/embeddings"
 
@@ -11,14 +12,8 @@ type
   EmbeddingCreateParams* = OpenAIEmbeddingsIn
   EmbeddingCreateResult* = OpenAIEmbeddingsOut
 
-proc withDefaultHeaders(cfg: OpenAIConfig;
-    headers: sink HttpHeaders = emptyHttpHeaders()): HttpHeaders =
-  result = headers
-  result["Authorization"] = "Bearer " & cfg.apiKey
-  result["Content-Type"] = "application/json"
-
 proc embeddingCreate*(model, input: sink string;
-    encodingFormat = "float"): EmbeddingCreateParams =
+    encodingFormat = EmbeddingEncodingFormat.`float`): EmbeddingCreateParams =
   EmbeddingCreateParams(
     model: model,
     input: input,
@@ -28,26 +23,12 @@ proc embeddingCreate*(model, input: sink string;
 proc embeddingRequest*(cfg: OpenAIConfig; params: EmbeddingCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  RequestSpec(
-    verb: hvPost,
-    url: cfg.url,
-    headers: cfg.withDefaultHeaders(headers),
-    body: toJson(params),
-    requestId: requestId,
-    timeoutMs: timeoutMs
-  )
+  jsonPostRequest(cfg, params, requestId, timeoutMs, headers)
 
 proc embeddingAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: EmbeddingCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  batch.addRequest(
-    verb = hvPost,
-    url = cfg.url,
-    headers = cfg.withDefaultHeaders(headers),
-    body = toJson(params),
-    requestId = requestId,
-    timeoutMs = timeoutMs
-  )
+  jsonPostAdd(batch, cfg, params, requestId, timeoutMs, headers)
 
 proc embeddingParse*(body: string; dst: var EmbeddingCreateResult): bool =
   try:
@@ -67,13 +48,35 @@ proc ensureEmbeddingIndex(embeddingCount, i: int) {.inline.} =
     raiseAccessorValueError("embedding index " & $i &
       " out of range for " & $embeddingCount & " embeddings")
 
-proc embedding*(x: EmbeddingCreateResult; i = 0): lent seq[float] {.inline.} =
-  ensureEmbeddingIndex(x.data.len, i)
-  result = x.data[i].embedding
+proc ensureFloatEmbedding(x: OpenAIEmbeddingContent; i: int) {.inline.} =
+  if x.kind != EmbeddingContentKind.values:
+    raiseAccessorValueError("embedding " & $i &
+      " uses base64 encoding; request float encoding or use embeddingBase64()")
 
-proc embedding*(x: var EmbeddingCreateResult; i = 0): var seq[float] {.inline.} =
+proc ensureBase64Embedding(x: OpenAIEmbeddingContent; i: int) {.inline.} =
+  if x.kind != EmbeddingContentKind.encoded:
+    raiseAccessorValueError("embedding " & $i &
+      " uses float encoding; use embedding() for numeric vectors")
+
+proc embedding*(x: EmbeddingCreateResult; i = 0): lent seq[float32] {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
-  result = x.data[i].embedding
+  ensureFloatEmbedding(x.data[i].embedding, i)
+  result = x.data[i].embedding.values
+
+proc embedding*(x: var EmbeddingCreateResult; i = 0): var seq[float32] {.inline.} =
+  ensureEmbeddingIndex(x.data.len, i)
+  ensureFloatEmbedding(x.data[i].embedding, i)
+  result = x.data[i].embedding.values
+
+proc embeddingBase64*(x: EmbeddingCreateResult; i = 0): lent string {.inline.} =
+  ensureEmbeddingIndex(x.data.len, i)
+  ensureBase64Embedding(x.data[i].embedding, i)
+  result = x.data[i].embedding.encoded
+
+proc embeddingBase64*(x: var EmbeddingCreateResult; i = 0): var string {.inline.} =
+  ensureEmbeddingIndex(x.data.len, i)
+  ensureBase64Embedding(x.data[i].embedding, i)
+  result = x.data[i].embedding.encoded
 
 proc modelOf*(x: EmbeddingCreateResult): lent string {.inline.} =
   result = x.model

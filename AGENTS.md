@@ -1,10 +1,13 @@
 # Repository Guidelines
 
 ## Project Structure & Modules
-- `src/`: Core OpenAI-facing library modules.
-  - `openai.nim`: chat-completions API helpers and response accessors.
-  - `openai_schema.nim`: direct JSON-mapped schema types.
-  - `openai_retry.nim`: optional retry/backoff helpers.
+- `src/openai/`: Capability-first public modules and shared internals.
+  - `chat.nim`: chat-completions API helpers and response accessors.
+  - `embeddings.nim`: embeddings request helpers and response accessors.
+  - `audio_speech.nim`: text-to-speech request helpers.
+  - `retry.nim`: optional retry/backoff helpers.
+  - `core.nim`: shared config and common HTTP helpers.
+  - `schema/`: direct JSON-mapped schema types grouped by capability.
 - `tests/`: Executable test programs and local `tests/config.nims`.
 - `examples/`: Runnable examples and local `examples/config.nims`.
 - Root files:

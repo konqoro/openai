@@ -1,5 +1,6 @@
 import std/os
-import jsonx, relay, openai
+import jsonx, relay
+import openai/chat
 
 {.passL: "-lcurl".}
 

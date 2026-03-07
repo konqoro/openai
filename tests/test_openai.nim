@@ -1,6 +1,6 @@
 import relay
 import jsonx
-import openai
+import openai/chat
 import std/strutils
 
 const GoodResponse = """{

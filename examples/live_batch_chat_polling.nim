@@ -1,6 +1,6 @@
-import std/[os, strutils]
+import std/os
 import relay
-import openai
+import openai/chat
 
 {.passL: "-lcurl".}
 

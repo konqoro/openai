@@ -25,7 +25,6 @@ type
   ResponseFormatType* = enum
     text, json_object, json_schema, regex
 
-  # Output schema (trimmed common fields)
   ChatCompletionAssistantContentKind* = enum
     text, parts
 
@@ -70,7 +69,6 @@ type
     choices*: seq[OpenAIChatCompletionChoice]
     usage*: UsageInfo
 
-  # Input schema (trimmed common fields)
   ChatCompletionInputContentKind* = enum
     text, parts
 
