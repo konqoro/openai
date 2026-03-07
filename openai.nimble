@@ -1,5 +1,5 @@
 # Package
-version = "0.2.6"
+version = "0.2.7"
 author = "planetis-m"
 description = "OpenAI-style chat-completions helpers for Nim + relay"
 license = "MIT"
@@ -14,3 +14,4 @@ task test, "Run openai package tests":
   exec "nim c -r tests/test_openai.nim"
   exec "nim c -r tests/test_openai_retry.nim"
   exec "nim c -r tests/test_openai_audio_speech.nim"
+  exec "nim c -r tests/test_openai_embeddings.nim"
