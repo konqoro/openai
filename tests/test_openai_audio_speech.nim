@@ -22,7 +22,7 @@ proc testSpeechCreateDefaults() =
   doAssert params.voice == "af_bella"
   doAssert params.response_format == AudioSpeechResponseFormat.wav
   doAssert params.speed == 1.0
-  doAssert params.extra_body.len == 0
+  doAssert string(params.extra_body).len == 0
 
   let json = toJson(params)
   doAssert json.contains("\"model\":\"hexgrad/Kokoro-82M\"")
@@ -85,7 +85,9 @@ proc testSpeechExtraBodyRawJson() =
     model = "hexgrad/Kokoro-82M",
     input = "chunk text",
     voice = "af_bella",
-    extraBody = """{"seed":7,"speaker":"bella","stream":false,"tags":["demo",2]}"""
+    extraBody = RawJson(
+      """{"seed":7,"speaker":"bella","stream":false,"tags":["demo",2]}"""
+    )
   )
   let json = toJson(params)
   doAssert json.contains(

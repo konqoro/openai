@@ -230,21 +230,21 @@ proc testInputConstructorsCoverage() =
   doAssert tool.`type` == ChatToolType.function
   doAssert tool.function.name == "lookup"
   doAssert tool.function.description == "search docs"
-  doAssert tool.function.parameters == EmptyFunctionParametersSchema
+  doAssert string(tool.function.parameters) == string(EmptyFunctionParametersSchema)
 
   type
     ToolSchema = object
       `type`: string
 
   let typedTool = toolFunction("typed", ToolSchema(`type`: "object"))
-  doAssert typedTool.function.parameters == """{"type":"object"}"""
+  doAssert string(typedTool.function.parameters) == """{"type":"object"}"""
 
   doAssert formatText.`type` == ResponseFormatType.text
   doAssert formatJsonObject.`type` == ResponseFormatType.json_object
-  let jsonSchemaFormat = formatJsonSchema("output", """{"type":"object"}""")
+  let jsonSchemaFormat = formatJsonSchema("output", RawJson("""{"type":"object"}"""))
   doAssert jsonSchemaFormat.`type` == ResponseFormatType.json_schema
   doAssert jsonSchemaFormat.json_schema.name == "output"
-  doAssert jsonSchemaFormat.json_schema.schema == """{"type":"object"}"""
+  doAssert string(jsonSchemaFormat.json_schema.schema) == """{"type":"object"}"""
   doAssert jsonSchemaFormat.json_schema.strict
   doAssert formatRegex.`type` == ResponseFormatType.regex
 

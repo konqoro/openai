@@ -102,7 +102,7 @@ type
   FunctionDefinition* = object
     name*: string
     description*: string
-    parameters*: string
+    parameters*: RawJson
 
   ChatTool* = object
     `type`*: ChatToolType
@@ -110,7 +110,7 @@ type
 
   ResponseFormatJsonSchema* = object
     name*: string
-    schema*: string
+    schema*: RawJson
     strict*: bool
 
   ResponseFormat* = object
@@ -135,7 +135,7 @@ type
     response_format*: ResponseFormat
 
 const
-  EmptyFunctionParametersSchema* = """{"type":"object","properties":{}}"""
+  EmptyFunctionParametersSchema* = RawJson("""{"type":"object","properties":{}}""")
 
 proc readJson*(dst: var ChatCompletionAssistantContent; p: var JsonParser) =
   if p.tok == tkString:
@@ -185,33 +185,26 @@ template writeJsonField(s: Stream; name: string; value: untyped) =
   streams.write(s, ":")
   writeJson(s, value)
 
-template writeJsonRawField(s: Stream; name: string; value: string) =
-  if comma: streams.write(s, ",")
-  else: comma = true
-  escapeJson(s, name)
-  streams.write(s, ":")
-  streams.write(s, value)
-
 proc writeJson*(s: Stream; x: FunctionDefinition) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "name", x.name)
   if x.description.len > 0:
     writeJsonField(s, "description", x.description)
-  if x.parameters.len > 0:
-    writeJsonRawField(s, "parameters", x.parameters)
+  if string(x.parameters).len > 0:
+    writeJsonField(s, "parameters", x.parameters)
   else:
-    writeJsonRawField(s, "parameters", EmptyFunctionParametersSchema)
+    writeJsonField(s, "parameters", EmptyFunctionParametersSchema)
   streams.write(s, "}")
 
 proc writeJson*(s: Stream; x: ResponseFormatJsonSchema) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "name", x.name)
-  if x.schema.len > 0:
-    writeJsonRawField(s, "schema", x.schema)
+  if string(x.schema).len > 0:
+    writeJsonField(s, "schema", x.schema)
   else:
-    writeJsonRawField(s, "schema", "{}")
+    writeJsonField(s, "schema", RawJson("{}"))
   writeJsonField(s, "strict", x.strict)
   streams.write(s, "}")
 

@@ -15,7 +15,7 @@ type
     voice*: string
     response_format*: AudioSpeechResponseFormat
     speed*: float
-    extra_body*: string
+    extra_body*: RawJson
 
 template writeJsonField(s: Stream; name: string; value: untyped) =
   if comma: streams.write(s, ",")
@@ -23,13 +23,6 @@ template writeJsonField(s: Stream; name: string; value: untyped) =
   escapeJson(s, name)
   streams.write(s, ":")
   writeJson(s, value)
-
-template writeJsonRawField(s: Stream; name: string; value: string) =
-  if comma: streams.write(s, ",")
-  else: comma = true
-  escapeJson(s, name)
-  streams.write(s, ":")
-  streams.write(s, value)
 
 proc writeJson*(s: Stream; x: OpenAIAudioSpeechIn) =
   var comma = false
@@ -44,6 +37,6 @@ proc writeJson*(s: Stream; x: OpenAIAudioSpeechIn) =
     writeJsonField(s, "response_format", x.response_format)
   if x.speed != 1.0:
     writeJsonField(s, "speed", x.speed)
-  if x.extra_body.len > 0:
-    writeJsonRawField(s, "extra_body", x.extra_body)
+  if string(x.extra_body).len > 0:
+    writeJsonField(s, "extra_body", x.extra_body)
   streams.write(s, "}")

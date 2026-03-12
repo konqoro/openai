@@ -1,4 +1,5 @@
 import relay
+import jsonx
 import ./[core, http]
 import ./schema/audio_speech_schema
 
@@ -14,7 +15,7 @@ proc speechCreate*(model, input: sink string; voice = "";
     serviceTier = AudioSpeechServiceTier.`default`;
     responseFormat = AudioSpeechResponseFormat.wav;
     speed = 1.0;
-    extraBody = ""):
+    extraBody: sink RawJson = RawJson("")):
     AudioSpeechCreateParams =
   AudioSpeechCreateParams(
     service_tier: serviceTier,
