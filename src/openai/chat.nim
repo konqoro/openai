@@ -120,8 +120,7 @@ proc toolFunction*[TSchema](name: sink string; description: sink string;
     parametersSchema: TSchema): ChatTool =
   result = toolFunction(name, description, RawJson(toJson(parametersSchema)))
 
-proc toolFunction*[TSchema](name: sink string;
-    parametersSchema: TSchema): ChatTool =
+proc toolFunction*[TSchema](name: sink string; parametersSchema: TSchema): ChatTool =
   result = toolFunction(name, "", RawJson(toJson(parametersSchema)))
 
 let
@@ -201,7 +200,7 @@ proc firstNonEmptyTextPartIndex(content: ChatCompletionAssistantContent; i: int)
   for partIdx in 0 ..< content.parts.len:
     if content.parts[partIdx].text.len > 0:
       result = partIdx
-      break
+      return result
 
 proc idOf*(x: ChatCreateResult): lent string {.inline.} =
   result = x.id
