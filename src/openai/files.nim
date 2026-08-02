@@ -28,7 +28,7 @@ proc fileUploadRequest*(cfg: OpenAIConfig; filename, purpose: string;
     content: sink string; boundary = DefaultMultipartBoundary;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  var hs = cfg.withAuthHeader(headers)
+  var hs = cfg.withDefaultHeaders(headers)
   hs["Content-Type"] = "multipart/form-data; boundary=" & boundary
   RequestSpec(
     verb: hvPost,
@@ -44,7 +44,7 @@ proc fileUploadAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     boundary = DefaultMultipartBoundary;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  var hs = cfg.withAuthHeader(headers)
+  var hs = cfg.withDefaultHeaders(headers)
   hs["Content-Type"] = "multipart/form-data; boundary=" & boundary
   batch.addRequest(
     verb = hvPost,
@@ -58,7 +58,7 @@ proc fileUploadAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
 proc fileRetrieveRequest*(cfg: OpenAIConfig; fileId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  plainRequest(cfg, hvGet, cfg.url & FilesPath & "/" & fileId,
+  request(cfg, hvGet, cfg.url & FilesPath & "/" & fileId,
     requestId, timeoutMs, headers)
 
 proc fileListRequest*(cfg: OpenAIConfig; after = ""; purpose = ""; limit = 0;
@@ -71,19 +71,19 @@ proc fileListRequest*(cfg: OpenAIConfig; after = ""; purpose = ""; limit = 0;
     params["purpose"] = purpose
   if limit > 0:
     params["limit"] = $limit
-  plainRequest(cfg, hvGet, cfg.url & FilesPath & queryString(params),
+  request(cfg, hvGet, cfg.url & FilesPath & queryString(params),
     requestId, timeoutMs, headers)
 
 proc fileContentRequest*(cfg: OpenAIConfig; fileId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  plainRequest(cfg, hvGet, cfg.url & FilesPath & "/" & fileId & "/content",
+  request(cfg, hvGet, cfg.url & FilesPath & "/" & fileId & "/content",
     requestId, timeoutMs, headers)
 
 proc fileDeleteRequest*(cfg: OpenAIConfig; fileId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  plainRequest(cfg, hvDelete, cfg.url & FilesPath & "/" & fileId,
+  request(cfg, hvDelete, cfg.url & FilesPath & "/" & fileId,
     requestId, timeoutMs, headers)
 
 proc fileParse*(body: string; dst: var FileObject): bool =

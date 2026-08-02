@@ -31,13 +31,13 @@ proc outputExpiresAfter*(seconds: int;
 proc batchCreateRequest*(cfg: OpenAIConfig; params: BatchCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  jsonRequest(cfg, hvPost, cfg.url & BatchesPath, params,
+  request(cfg, hvPost, cfg.url & BatchesPath, params,
     requestId, timeoutMs, headers)
 
 proc batchRetrieveRequest*(cfg: OpenAIConfig; batchId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  plainRequest(cfg, hvGet, cfg.url & BatchesPath & "/" & batchId,
+  request(cfg, hvGet, cfg.url & BatchesPath & "/" & batchId,
     requestId, timeoutMs, headers)
 
 proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0;
@@ -48,13 +48,13 @@ proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0;
     params["after"] = after
   if limit > 0:
     params["limit"] = $limit
-  plainRequest(cfg, hvGet, cfg.url & BatchesPath & queryString(params),
+  request(cfg, hvGet, cfg.url & BatchesPath & queryString(params),
     requestId, timeoutMs, headers)
 
 proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  plainRequest(cfg, hvPost,
+  request(cfg, hvPost,
     cfg.url & BatchesPath & "/" & batchId & "/cancel",
     requestId, timeoutMs, headers)
 

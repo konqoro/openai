@@ -30,11 +30,11 @@ proc speechCreate*(model, input: sink string; voice = "";
 proc speechRequest*(cfg: OpenAIConfig; params: AudioSpeechCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  jsonPostRequest(cfg, cfg.url & AudioSpeechPath, params,
+  request(cfg, hvPost, cfg.url & AudioSpeechPath, params,
     requestId, timeoutMs, headers)
 
 proc speechAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: AudioSpeechCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  jsonPostAdd(batch, cfg, cfg.url & AudioSpeechPath, params,
+  requestAdd(batch, cfg, hvPost, cfg.url & AudioSpeechPath, params,
     requestId, timeoutMs, headers)

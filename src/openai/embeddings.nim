@@ -23,13 +23,13 @@ proc embeddingCreate*(model, input: sink string;
 proc embeddingRequest*(cfg: OpenAIConfig; params: EmbeddingCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  jsonPostRequest(cfg, cfg.url & EmbeddingsPath, params,
+  request(cfg, hvPost, cfg.url & EmbeddingsPath, params,
     requestId, timeoutMs, headers)
 
 proc embeddingAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: EmbeddingCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  jsonPostAdd(batch, cfg, cfg.url & EmbeddingsPath, params,
+  requestAdd(batch, cfg, hvPost, cfg.url & EmbeddingsPath, params,
     requestId, timeoutMs, headers)
 
 proc embeddingParse*(body: string; dst: var EmbeddingCreateResult): bool =
