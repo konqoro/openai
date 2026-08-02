@@ -179,11 +179,11 @@ proc totalTokens*(x: Batch): int {.inline.} =
 
 proc cachedInputTokens*(x: Batch): int {.inline.} =
   result = x.usage.get(BatchUsage()).
-    input_tokens_details.get(BatchUsageInputDetails()).cached_tokens
+    input_tokens_details.cached_tokens
 
 proc reasoningOutputTokens*(x: Batch): int {.inline.} =
   result = x.usage.get(BatchUsage()).
-    output_tokens_details.get(BatchUsageOutputDetails()).reasoning_tokens
+    output_tokens_details.reasoning_tokens
 
 proc outputStatusCode*(x: BatchOutputLine): int {.inline.} =
   result = x.response.get(BatchOutputResponse()).status_code

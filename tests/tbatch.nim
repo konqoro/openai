@@ -159,6 +159,9 @@ proc testBatchParseAndAccessors() =
   doAssert inputTokens(parsed) == 1000
   doAssert outputTokens(parsed) == 200
   doAssert totalTokens(parsed) == 1200
+  doAssert parsed.usage.isSome
+  doAssert parsed.usage.get.input_tokens_details.cached_tokens == 960
+  doAssert parsed.usage.get.output_tokens_details.reasoning_tokens == 0
   doAssert cachedInputTokens(parsed) == 960
   doAssert reasoningOutputTokens(parsed) == 0
   doAssert completedAt(parsed) == 1711493163

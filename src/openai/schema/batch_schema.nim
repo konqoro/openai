@@ -23,9 +23,9 @@ type
 
   BatchUsage* = object
     input_tokens*: int
-    input_tokens_details*: Option[BatchUsageInputDetails]
+    input_tokens_details*: BatchUsageInputDetails
     output_tokens*: int
-    output_tokens_details*: Option[BatchUsageOutputDetails]
+    output_tokens_details*: BatchUsageOutputDetails
     total_tokens*: int
 
   BatchError* = object
