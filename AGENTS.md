@@ -22,9 +22,10 @@
 - Dependency workflow: use Atlas workspace/deps setup.
 - Do not add Nimble-based dependency install steps to docs/automation for this repo.
 - Use `nim` compile/run commands directly.
-- Run tests:
-  - `nim c -r tests/test_openai.nim`
-  - `nim c -r tests/test_openai_retry.nim`
+- Run tests from the project root:
+  - `nim c -r tests/tester.nim` (auto-discovers every `t*.nim` file)
+  - `nim c -d:release -r tests/tester.nim`
+  - `nim c -d:danger -r tests/tester.nim`
 - Build examples:
   - `nim c examples/live_ocr_retry.nim`
   - `nim c examples/live_batch_chat_polling.nim`
@@ -39,8 +40,8 @@
 
 ## Testing Guidelines
 - This project does **not** use `unittest`.
-- Tests are standalone Nim programs using `doAssert`.
-- Add tests under `tests/` with `test_<topic>.nim` naming.
+- Tests are standalone `t*.nim` programs using `block` scopes and `doAssert`.
+- Add tests under `tests/` with `t<topic>.nim` naming; the tester picks them up.
 - Keep tests deterministic and bounded.
 
 ## Commit & Pull Requests

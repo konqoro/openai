@@ -379,10 +379,9 @@ nim c -r examples/live_tool_calling_llama.nim
 ## Run Tests
 
 ```bash
-nim c -r tests/test_openai.nim
-nim c -r tests/test_openai_retry.nim
-nim c -r tests/test_openai_audio_speech.nim
-nim c -r tests/test_openai_embeddings.nim
-nim c -r tests/test_openai_files.nim
-nim c -r tests/test_openai_batch.nim
+nim c -r tests/tester.nim
 ```
+
+The tester auto-discovers every `t*.nim` file under `tests/`. Run all
+configurations with `nim c -d:release -r tests/tester.nim` and
+`nim c -d:danger -r tests/tester.nim`.

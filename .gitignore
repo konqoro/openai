@@ -1,9 +1,10 @@
 /examples/live_batch_chat_polling
 /examples/live_ocr_retry
-/tests/test_openai
-/tests/test_openai_retry
-/tests/test_openai_audio_speech
-/tests/test_openai_embeddings
-/tests/test_openai_files
-/tests/test_openai_batch
+/tests/topenai
+/tests/tretry
+/tests/taudio_speech
+/tests/tembeddings
+/tests/tfiles
+/tests/tbatch
+/tests/tester
 /test_live_ocr

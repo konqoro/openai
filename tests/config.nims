@@ -1,5 +1,5 @@
 # Local build config for tests
-switch("path", "../src")
+switch("path", "$projectdir/../src")
 
 switch("threads", "on")
 switch("mm", "atomicArc")
