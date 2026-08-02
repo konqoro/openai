@@ -15,3 +15,5 @@ task test, "Run openai package tests":
   exec "nim c -r tests/test_openai_retry.nim"
   exec "nim c -r tests/test_openai_audio_speech.nim"
   exec "nim c -r tests/test_openai_embeddings.nim"
+  exec "nim c -r tests/test_openai_files.nim"
+  exec "nim c -r tests/test_openai_batch.nim"

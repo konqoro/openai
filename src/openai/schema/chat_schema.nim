@@ -1,3 +1,5 @@
+import std/options
+export options
 import jsonx
 import jsonx/[parsejson, streams]
 
@@ -133,6 +135,8 @@ type
     tools*: seq[ChatTool]
     tool_choice*: ToolChoice
     response_format*: ResponseFormat
+    seed*: Option[int64]
+    store*: Option[bool]
 
 const
   EmptyFunctionParametersSchema* = RawJson("""{"type":"object","properties":{}}""")
@@ -249,4 +253,8 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
       writeJsonField(s, "tool_choice", x.tool_choice)
   if x.response_format.`type` != ResponseFormatType.text:
     writeJsonField(s, "response_format", x.response_format)
+  if x.seed.isSome:
+    writeJsonField(s, "seed", x.seed.get)
+  if x.store.isSome:
+    writeJsonField(s, "store", x.store.get)
   streams.write(s, "}")

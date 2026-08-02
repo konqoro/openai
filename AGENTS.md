@@ -5,6 +5,9 @@
   - `chat.nim`: chat-completions API helpers and response accessors.
   - `embeddings.nim`: embeddings request helpers and response accessors.
   - `audio_speech.nim`: text-to-speech request helpers.
+  - `batch.nim`: Batches API helpers, JSONL line builders, and output/error
+    line parsing.
+  - `files.nim`: Files API helpers including multipart upload.
   - `retry.nim`: optional retry/backoff helpers.
   - `core.nim`: shared config and common HTTP helpers.
   - `schema/`: direct JSON-mapped schema types grouped by capability.

@@ -2,4 +2,8 @@
 /examples/live_ocr_retry
 /tests/test_openai
 /tests/test_openai_retry
+/tests/test_openai_audio_speech
+/tests/test_openai_embeddings
+/tests/test_openai_files
+/tests/test_openai_batch
 /test_live_ocr

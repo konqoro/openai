@@ -238,6 +238,80 @@ let params = chatCreate(
 )
 ```
 
+## Files API Module
+
+`openai/files` covers the Files API, a general resource used by fine-tuning,
+Assistants, vision, and Batch. Upload a JSONL input file with
+`purpose = "batch"` (multipart is built for you), then list, retrieve,
+download, or delete files:
+
+```nim
+let upload = fileUploadRequest(cfg, "input.jsonl", "batch", jsonlContent)
+var uploaded: FileObject
+if fileParse(client.makeRequest(upload).response.body, uploaded):
+  echo "file=", idOf(uploaded)
+
+let download = fileContentRequest(cfg, "file-abc123")
+let content = client.makeRequest(download).response.body
+```
+
+## Batch API Module
+
+`openai/batch` covers the Batches API used by asynchronous workloads: create
+and poll a batch from an uploaded request file, then collect and reconcile
+the output lines by `custom_id`.
+
+```nim
+import std/os
+import relay
+import openai/[batch, chat]
+
+{.passL: "-lcurl".}
+
+proc main() =
+  let cfg = OpenAIConfig(
+    url: OpenAIBatchesUrl,
+    apiKey: getEnv("OPENAI_API_KEY")
+  )
+  let client = newRelay(maxInFlight = 1, defaultTimeoutMs = 30_000)
+  defer: client.close()
+
+  # One JSONL request line per chat-completions call.
+  let params = chatCreate(
+    model = "gpt-5.6-luna",
+    messages = @[userMessageText("Define batch polling in one sentence.")]
+  )
+  let line = batchInputLineJson(
+    "request-1",
+    RawJson(toJson(params))
+  )
+  echo line
+```
+
+Create a batch from an uploaded input file, poll it by status, then read the
+output and error files:
+
+```nim
+let create = batchCreateRequest(cfg,
+  batchCreate("file-abc123", "/v1/chat/completions"))
+var batch: Batch
+if batchParse(client.makeRequest(create).response.body, batch):
+  echo "batch=", idOf(batch), " status=", statusOf(batch)
+
+let retrieve = batchRetrieveRequest(cfg, idOf(batch))
+if batchParse(client.makeRequest(retrieve).response.body, batch):
+  if statusOf(batch) == BatchStatus.completed:
+    echo "output=", outputFileId(batch)
+    echo "usage=", inputTokens(batch), "/", outputTokens(batch)
+```
+
+Statuses cover `validating`, `failed`, `in_progress`, `finalizing`,
+`completed`, `expired`, `cancelling`, and `cancelled`; `isTerminal` reports
+whether a batch can no longer progress. Parse each line of a downloaded
+output/error file with `batchOutputLineParse` and map results back to requests
+by `custom_id` (`outputStatusCode`, `outputRequestId`, `outputBody`,
+`outputErrorCode`).
+
 ## Optional Retry Module
 
 `openai/retry` is optional.
@@ -282,6 +356,15 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
 - Retry helpers:
   `defaultRetryPolicy`, `retryDelayMs`, `isRetriableStatus`,
   `isRetriableTransport` (from `openai/retry`)
+- Batch helpers (from `openai/batch`):
+  `batchCreate`, `batchCreateRequest`, `batchRetrieveRequest`,
+  `batchListRequest`, `batchCancelRequest`, `batchParse`, `batchListParse`,
+  `batchInputLine`, `batchInputLineJson`, `batchOutputLineParse`,
+  `statusOf`, `isTerminal`, `totalRequests`, `inputTokens`, `outputTokens`
+- File helpers (from `openai/files`):
+  `fileUploadRequest`, `fileUploadAdd`, `fileRetrieveRequest`,
+  `fileListRequest`, `fileContentRequest`, `fileDeleteRequest`,
+  `fileParse`, `fileListParse`, `fileDeletedParse`
 
 ## Run Examples
 
@@ -298,4 +381,8 @@ nim c -r examples/live_tool_calling_llama.nim
 ```bash
 nim c -r tests/test_openai.nim
 nim c -r tests/test_openai_retry.nim
+nim c -r tests/test_openai_audio_speech.nim
+nim c -r tests/test_openai_embeddings.nim
+nim c -r tests/test_openai_files.nim
+nim c -r tests/test_openai_batch.nim
 ```

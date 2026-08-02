@@ -564,6 +564,31 @@ proc testParseFirstCallArgs() =
   doAssert chatParse(GoodResponse, noCalls)
   doAssert not parseFirstCallArgs(noCalls, args)
 
+proc testSeedAndStoreSerialization() =
+  let defaultRequest = chatCreate(
+    model = "gpt-4.1-mini",
+    messages = @[userMessageText("ping")]
+  )
+  let defaultJson = toJson(defaultRequest)
+  doAssert not defaultJson.contains("\"seed\":")
+  doAssert not defaultJson.contains("\"store\":")
+
+  var request = chatCreate(
+    model = "gpt-4.1-mini",
+    messages = @[userMessageText("ping")]
+  )
+  request.seed = some(42'i64)
+  request.store = some(false)
+  let json = toJson(request)
+  doAssert json.contains("\"seed\":42")
+  doAssert json.contains("\"store\":false")
+
+  let parsed = fromJson(json, ChatCreateParams)
+  doAssert parsed.seed.isSome
+  doAssert parsed.seed.get == 42'i64
+  doAssert parsed.store.isSome
+  doAssert not parsed.store.get
+
 proc testHttpSuccessClassifier() =
   doAssert isHttpSuccess(200)
   doAssert isHttpSuccess(201)
@@ -591,5 +616,6 @@ when isMainModule:
   testVarStringAccessors()
   testParseFirstTextJson()
   testParseFirstCallArgs()
+  testSeedAndStoreSerialization()
   testHttpSuccessClassifier()
   echo "all tests passed"
