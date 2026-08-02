@@ -70,7 +70,7 @@ proc main() =
     url: ApiUrl,
     apiKey: apiKey
   )
-  let retryPolicy = defaultRetryPolicy(
+  let retryPolicy = initRetryPolicy(
     maxAttempts = 5,
     baseDelayMs = RetryBaseDelayMs,
     maxDelayMs = RetryMaxDelayMs,

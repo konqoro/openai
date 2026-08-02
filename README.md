@@ -341,7 +341,7 @@ import openai/chat
 
 proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
     params: ChatCreateParams): ChatCreateResult =
-  let policy = defaultRetryPolicy(maxAttempts = 5)
+  let policy = initRetryPolicy(maxAttempts = 5)
   var rng = initRand(epochTime().int64)
   let maxAttempts = max(1, policy.maxAttempts)
 
@@ -372,7 +372,7 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
   `calls`, `firstCallName`, `firstCallArgs`, `promptTokens`,
   `completionTokens`, `totalTokens`
 - Retry helpers:
-  `defaultRetryPolicy`, `retryDelayMs`, `isRetryable` (from `relay/retry`)
+  `initRetryPolicy`, `retryDelayMs`, `isRetryable` (from `relay/retry`)
 - Batch helpers (from `openai/batch`):
   `batchCreate`, `batchCreateRequest`, `batchRetrieveRequest`,
   `batchListRequest`, `batchCancelRequest`, `batchParse`, `batchListParse`,
