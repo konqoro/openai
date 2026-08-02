@@ -115,28 +115,28 @@ proc createdAt*(x: Batch): int64 {.inline.} =
   result = int64(x.created_at)
 
 proc inProgressAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.in_progress_at.get(Timestamp(0)))
+  result = x.in_progress_at.get(0)
 
 proc finalizingAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.finalizing_at.get(Timestamp(0)))
+  result = x.finalizing_at.get(0)
 
 proc completedAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.completed_at.get(Timestamp(0)))
+  result = x.completed_at.get(0)
 
 proc failedAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.failed_at.get(Timestamp(0)))
+  result = x.failed_at.get(0)
 
 proc expiredAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.expired_at.get(Timestamp(0)))
+  result = x.expired_at.get(0)
 
 proc expiresAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.expires_at.get(Timestamp(0)))
+  result = x.expires_at.get(0)
 
 proc cancellingAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.cancelling_at.get(Timestamp(0)))
+  result = x.cancelling_at.get(0)
 
 proc cancelledAt*(x: Batch): int64 {.inline.} =
-  result = int64(x.cancelled_at.get(Timestamp(0)))
+  result = x.cancelled_at.get(0)
 
 proc errorCount*(x: Batch): int {.inline.} =
   result = x.errors.get(BatchErrors()).data.len

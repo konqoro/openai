@@ -2,9 +2,6 @@ import std/options
 export options
 import jsonx
 import jsonx/streams
-import ../timestamp
-
-export timestamp
 
 {.define: jsonxLenient.}
 
@@ -44,21 +41,21 @@ type
   Batch* = object
     id*: string
     completion_window*: string
-    created_at*: Timestamp
+    created_at*: int64
     endpoint*: string
     input_file_id*: string
     `object`*: string
     status*: BatchStatus
-    cancelled_at*: Option[Timestamp]
-    cancelling_at*: Option[Timestamp]
-    completed_at*: Option[Timestamp]
+    cancelled_at*: Option[int64]
+    cancelling_at*: Option[int64]
+    completed_at*: Option[int64]
     error_file_id*: string
     errors*: Option[BatchErrors]
-    expired_at*: Option[Timestamp]
-    expires_at*: Option[Timestamp]
-    failed_at*: Option[Timestamp]
-    finalizing_at*: Option[Timestamp]
-    in_progress_at*: Option[Timestamp]
+    expired_at*: Option[int64]
+    expires_at*: Option[int64]
+    failed_at*: Option[int64]
+    finalizing_at*: Option[int64]
+    in_progress_at*: Option[int64]
     metadata*: RawJson
     model*: string
     output_file_id*: string

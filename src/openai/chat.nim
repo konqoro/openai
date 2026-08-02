@@ -219,7 +219,7 @@ proc modelOf*(x: var ChatCreateResult): var string {.inline.} =
   result = x.model
 
 proc createdAt*(x: ChatCreateResult): int64 {.inline.} =
-  result = int64(x.created)
+  result = x.created
 
 proc promptTokens*(x: ChatCreateResult): int {.inline.} =
   result = x.usage.prompt_tokens

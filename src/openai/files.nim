@@ -114,4 +114,4 @@ proc idOf*(x: var FileObject): var string {.inline.} =
   result = x.id
 
 proc expiresAt*(x: FileObject): int64 {.inline.} =
-  result = int64(x.expires_at.get(Timestamp(0)))
+  result = x.expires_at.get(0)
