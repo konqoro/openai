@@ -147,6 +147,7 @@ proc formatJsonSchema*[TSchema](name: sink string; schema: TSchema;
 
 proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     stream = false; temperature = 1.0; maxTokens = 0;
+    maxCompletionTokens = 0; seed = none(int64); store = none(bool);
     tools: sink seq[ChatTool] = @[];
     toolChoice = ToolChoice.none;
     responseFormat = formatText): ChatCreateParams =
@@ -156,9 +157,12 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     stream: stream,
     temperature: temperature,
     max_tokens: maxTokens,
+    max_completion_tokens: maxCompletionTokens,
     tools: tools,
     tool_choice: toolChoice,
-    response_format: responseFormat
+    response_format: responseFormat,
+    seed: seed,
+    store: store
   )
 
 proc chatRequest*(cfg: OpenAIConfig; params: ChatCreateParams;

@@ -133,6 +133,7 @@ type
     stream*: bool
     temperature*: float
     max_tokens*: int
+    max_completion_tokens*: int
     tools*: seq[ChatTool]
     tool_choice*: ToolChoice
     response_format*: ResponseFormat
@@ -248,6 +249,8 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
     writeJsonField(s, "temperature", x.temperature)
   if x.max_tokens != 0:
     writeJsonField(s, "max_tokens", x.max_tokens)
+  if x.max_completion_tokens != 0:
+    writeJsonField(s, "max_completion_tokens", x.max_completion_tokens)
   if x.tools.len > 0:
     writeJsonField(s, "tools", x.tools)
     if x.tool_choice == ToolChoice.required:

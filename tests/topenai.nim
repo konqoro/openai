@@ -279,6 +279,7 @@ proc testChatCreateMaxTokensSerialization() =
   )
   let defaultJson = toJson(defaultRequest)
   doAssert not defaultJson.contains("\"max_tokens\":")
+  doAssert not defaultJson.contains("\"max_completion_tokens\":")
   doAssert not defaultJson.contains("\"stream\":")
   doAssert not defaultJson.contains("\"temperature\":")
   doAssert not defaultJson.contains("\"tools\":")
@@ -294,6 +295,13 @@ proc testChatCreateMaxTokensSerialization() =
   )
   let explicitJson = toJson(explicitRequest)
   doAssert explicitJson.contains("\"max_tokens\":64")
+
+  let completionRequest = chatCreate(
+    model = "gpt-5.6-luna",
+    messages = @[userMessageText("ping")],
+    maxCompletionTokens = 128
+  )
+  doAssert toJson(completionRequest).contains("\"max_completion_tokens\":128")
 
 proc testChatCreateSerializationFieldInclusionRules() =
   let request = chatCreate(
@@ -575,12 +583,12 @@ proc testSeedAndStoreSerialization() =
   doAssert not defaultJson.contains("\"seed\":")
   doAssert not defaultJson.contains("\"store\":")
 
-  var request = chatCreate(
+  let request = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")]
+    messages = @[userMessageText("ping")],
+    seed = some(42'i64),
+    store = some(false)
   )
-  request.seed = some(42'i64)
-  request.store = some(false)
   let json = toJson(request)
   doAssert json.contains("\"seed\":42")
   doAssert json.contains("\"store\":false")
