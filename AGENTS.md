@@ -2,8 +2,7 @@
 
 ## Project Structure & Modules
 - `src/openai.nim`: package entry; `import openai` re-exports the capability
-  modules. Use `import openai/<module>` for a scoped subset; `openai/retry`
-  stays optional.
+  modules. Use `import openai/<module>` for a scoped subset.
 - `src/openai/`: Capability-first public modules and shared internals.
   - `chat.nim`: chat-completions API helpers and response accessors.
   - `embeddings.nim`: embeddings request helpers and response accessors.
@@ -11,11 +10,12 @@
   - `batch.nim`: Batches API helpers, JSONL line builders, and output/error
     line parsing.
   - `files.nim`: Files API helpers including multipart upload.
-  - `retry.nim`: optional retry/backoff helpers (not re-exported by `openai`).
   - `core.nim`: shared config (`OpenAIConfig`) and URL constants.
   - `http.nim`: shared header/request builders over relay, query-string helper.
   - `timestamp.nim`: shared Unix-timestamp value type with jsonx hooks.
   - `schema/`: direct JSON-mapped schema types grouped by capability.
+- Retry policy and HTTP status classification live in `relay` (`relay/retry`,
+  `relay/http_status`); they are transport-generic and not part of this package.
 - `tests/`: Executable test programs and local `tests/config.nims`.
 - `examples/`: Runnable examples and local `examples/config.nims`.
 - Root files:

@@ -12,7 +12,7 @@ and reading responses, while you keep full control of HTTP via
 - OpenAI wording, Nim ergonomics: `chatCreate`, `userMessageText`,
   `partImageUrl`, `firstText`.
 - Strongly typed JSON mapping via `jsonx` (no dynamic `std/json` trees).
-- Optional retry helpers in `openai/retry`, so policy stays in your app.
+- Optional retry helpers in `relay/retry`, so policy stays in your app.
 - No hidden transport abstraction to fight when scaling or debugging.
 
 ## Install
@@ -46,7 +46,7 @@ import openai/chat       # chat completions only
 import openai/batch      # batch API only
 ```
 
-`openai/retry` stays optional and is not re-exported by `import openai`.
+Retry policy helpers live in `relay/retry` and status classifiers in `relay/http_status`; they are not part of the OpenAI API surface.
 
 ## What Feels Different
 
@@ -327,12 +327,12 @@ by `custom_id` (`outputStatusCode`, `outputRequestId`, `outputBody`,
 
 ## Optional Retry Module
 
-`openai/retry` is optional.
+`relay/retry` is optional.
 
 ```nim
 import std/[random, times]
 import relay
-import openai/[chat, retry]
+import openai/chat
 
 proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
     params: ChatCreateParams): ChatCreateResult =
@@ -344,7 +344,7 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
     let item = client.makeRequest(chatRequest(cfg, params, requestId = attempt.int64))
     discard chatParse(item.response.body, result)
     let canRetry = attempt < maxAttempts and
-      (isRetriableTransport(item.error.kind) or isRetriableStatus(item.response.code))
+      (isRetryableTransport(item.error.kind) or isRetryableStatus(item.response.code))
     if canRetry:
       sleep(retryDelayMs(rng, attempt, policy))
     else:
@@ -367,8 +367,8 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
   `calls`, `firstCallName`, `firstCallArgs`, `promptTokens`,
   `completionTokens`, `totalTokens`
 - Retry helpers:
-  `defaultRetryPolicy`, `retryDelayMs`, `isRetriableStatus`,
-  `isRetriableTransport` (from `openai/retry`)
+  `defaultRetryPolicy`, `retryDelayMs`, `isRetryableStatus`,
+  `isRetryableTransport` (from `relay/retry`)
 - Batch helpers (from `openai/batch`):
   `batchCreate`, `batchCreateRequest`, `batchRetrieveRequest`,
   `batchListRequest`, `batchCancelRequest`, `batchParse`, `batchListParse`,

@@ -1,6 +1,6 @@
 import std/[base64, os, random, strutils, times]
 import relay
-import openai/[chat, retry]
+import openai/chat
 
 {.passL: "-lcurl".}
 
@@ -33,9 +33,9 @@ proc buildOcrParams(imageDataUrl: string): ChatCreateParams =
 proc shouldRetry(item: RequestResult; attempt: int; maxAttempts: int): bool =
   let hasMoreAttempts = attempt < maxAttempts
   let retryTransport = item.error.kind != teNone and
-    isRetriableTransport(item.error.kind)
+    isRetryableTransport(item.error.kind)
   let retryHttpStatus = item.error.kind == teNone and
-    isRetriableStatus(item.response.code)
+    isRetryableStatus(item.response.code)
   result = hasMoreAttempts and (retryTransport or retryHttpStatus)
 
 proc requestWithRetry(client: Relay; endpoint: OpenAIConfig; params: ChatCreateParams;

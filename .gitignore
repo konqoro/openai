@@ -2,7 +2,6 @@
 /examples/live_ocr_retry
 /examples/live_tool_calling_llama
 /tests/topenai
-/tests/tretry
 /tests/taudio_speech
 /tests/tembeddings
 /tests/tfiles
