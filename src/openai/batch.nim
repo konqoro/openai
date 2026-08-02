@@ -26,13 +26,12 @@ proc listQuery(after: string; limit: int): string =
 proc batchCreate*(inputFileId, endpoint: sink string;
     completionWindow = BatchCompletionWindow;
     metadata: sink RawJson = RawJson("")): BatchCreateParams =
-  result = BatchCreateParams(
+  BatchCreateParams(
     input_file_id: inputFileId,
     endpoint: endpoint,
-    completion_window: completionWindow
+    completion_window: completionWindow,
+    metadata: metadata
   )
-  if string(metadata).len > 0:
-    result.metadata = some(metadata)
 
 proc outputExpiresAfter*(seconds: int;
     anchor: sink string = "created_at"): OutputExpiresAfter =
@@ -108,17 +107,17 @@ proc isTerminal*(x: Batch): bool {.inline.} =
     BatchStatus.cancelled
   }
 
-proc modelOf*(x: Batch): string {.inline.} =
-  result = x.model.get("")
+proc modelOf*(x: Batch): lent string {.inline.} =
+  result = x.model
 
 proc inputFileId*(x: Batch): lent string {.inline.} =
   result = x.input_file_id
 
-proc outputFileId*(x: Batch): string {.inline.} =
-  result = x.output_file_id.get("")
+proc outputFileId*(x: Batch): lent string {.inline.} =
+  result = x.output_file_id
 
-proc errorFileId*(x: Batch): string {.inline.} =
-  result = x.error_file_id.get("")
+proc errorFileId*(x: Batch): lent string {.inline.} =
+  result = x.error_file_id
 
 proc totalRequests*(x: Batch): int {.inline.} =
   result = x.request_counts.get(BatchRequestCounts()).total

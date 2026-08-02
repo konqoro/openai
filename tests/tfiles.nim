@@ -98,7 +98,6 @@ proc testFileParseAndAccessors() =
   doAssert file.purpose == FilePurpose.fine_tune
   doAssert file.bytes == 120000
   doAssert file.expires_at.isNone
-  doAssert file.status_details.isNone
 
   var list: FileList
   doAssert fileListParse(FileListResponse, list)

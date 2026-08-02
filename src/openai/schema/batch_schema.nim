@@ -32,7 +32,7 @@ type
     code*: string
     line*: Option[int]
     message*: string
-    param*: Option[string]
+    param*: string
 
   BatchErrors* = object
     `object`*: string
@@ -49,7 +49,7 @@ type
     cancelled_at*: Option[int64]
     cancelling_at*: Option[int64]
     completed_at*: Option[int64]
-    error_file_id*: Option[string]
+    error_file_id*: string
     errors*: Option[BatchErrors]
     expired_at*: Option[int64]
     expires_at*: Option[int64]
@@ -57,16 +57,16 @@ type
     finalizing_at*: Option[int64]
     in_progress_at*: Option[int64]
     metadata*: Option[RawJson]
-    model*: Option[string]
-    output_file_id*: Option[string]
+    model*: string
+    output_file_id*: string
     request_counts*: Option[BatchRequestCounts]
     usage*: Option[BatchUsage]
 
   BatchList* = object
     `object`*: string
     data*: seq[Batch]
-    first_id*: Option[string]
-    last_id*: Option[string]
+    first_id*: string
+    last_id*: string
     has_more*: bool
 
   OutputExpiresAfter* = object
@@ -77,8 +77,8 @@ type
     input_file_id*: string
     endpoint*: string
     completion_window*: string
-    metadata*: Option[RawJson]
-    output_expires_after*: Option[OutputExpiresAfter]
+    metadata*: RawJson
+    output_expires_after*: OutputExpiresAfter
 
   BatchInputLine* = object
     custom_id*: string
@@ -114,8 +114,8 @@ proc writeJson*(s: Stream; x: BatchCreateParams) =
   writeJsonField(s, "input_file_id", x.input_file_id)
   writeJsonField(s, "endpoint", x.endpoint)
   writeJsonField(s, "completion_window", x.completion_window)
-  if x.metadata.isSome:
-    writeJsonField(s, "metadata", x.metadata.get)
-  if x.output_expires_after.isSome:
-    writeJsonField(s, "output_expires_after", x.output_expires_after.get)
+  if string(x.metadata).len > 0:
+    writeJsonField(s, "metadata", x.metadata)
+  if x.output_expires_after.anchor.len > 0:
+    writeJsonField(s, "output_expires_after", x.output_expires_after)
   streams.write(s, "}")

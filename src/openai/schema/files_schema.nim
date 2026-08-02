@@ -16,9 +16,7 @@ type
     filename*: string
     `object`*: string
     purpose*: FilePurpose
-    status*: string
     expires_at*: Option[int64]
-    status_details*: Option[string]
 
   FileDeleted* = object
     id*: string
@@ -28,6 +26,6 @@ type
   FileList* = object
     `object`*: string
     data*: seq[FileObject]
-    first_id*: Option[string]
-    last_id*: Option[string]
+    first_id*: string
+    last_id*: string
     has_more*: bool

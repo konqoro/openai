@@ -85,7 +85,7 @@ proc testBatchCreate() =
     """{"input_file_id":"file-abc123","endpoint":"/v1/chat/completions","completion_window":"24h","metadata":{"run":"r1"}}"""
 
   var withExpiry = withMetadata
-  withExpiry.output_expires_after = some(outputExpiresAfter(2592000))
+  withExpiry.output_expires_after = outputExpiresAfter(2592000)
   doAssert toJson(withExpiry) ==
     """{"input_file_id":"file-abc123","endpoint":"/v1/chat/completions","completion_window":"24h","metadata":{"run":"r1"},"output_expires_after":{"anchor":"created_at","seconds":2592000}}"""
 
@@ -163,7 +163,7 @@ proc testBatchListParse() =
   doAssert batchListParse(BatchListResponse, parsed)
   doAssert parsed.data.len == 1
   doAssert parsed.has_more
-  doAssert parsed.first_id.isSome
+  doAssert parsed.first_id == "batch_abc123"
   doAssert idOf(parsed.data[0]) == "batch_abc123"
 
 proc testOutputLineParse() =
