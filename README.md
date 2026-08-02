@@ -35,6 +35,19 @@ or:
 nimble sync
 ```
 
+## Importing
+
+`import openai` gives the full API: chat, embeddings, audio speech, batch, and
+files. Prefer a scoped import when you only need one capability:
+
+```nim
+import openai            # everything
+import openai/chat       # chat completions only
+import openai/batch      # batch API only
+```
+
+`openai/retry` stays optional and is not re-exported by `import openai`.
+
 ## What Feels Different
 
 Build requests with readable helpers:

@@ -52,8 +52,13 @@ proc batchRetrieveRequest*(cfg: OpenAIConfig; batchId: string; url = "";
 proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0; url = "";
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
+  var params: QueryParams
+  if after.len > 0:
+    params["after"] = after
+  if limit > 0:
+    params["limit"] = $limit
   let target = if url.len > 0: url else:
-    OpenAIBatchesUrl & listQuery(after, limit)
+    OpenAIBatchesUrl & queryString(params)
   plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
 
 proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string; url = "";
@@ -107,6 +112,48 @@ proc isTerminal*(x: Batch): bool {.inline.} =
     BatchStatus.cancelled
   }
 
+proc isFailed*(x: Batch): bool {.inline.} =
+  result = x.status == BatchStatus.failed
+
+proc isExpired*(x: Batch): bool {.inline.} =
+  result = x.status == BatchStatus.expired
+
+proc isCancelled*(x: Batch): bool {.inline.} =
+  result = x.status == BatchStatus.cancelled
+
+proc createdAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.created_at)
+
+proc inProgressAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.in_progress_at.get(Timestamp(0)))
+
+proc finalizingAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.finalizing_at.get(Timestamp(0)))
+
+proc completedAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.completed_at.get(Timestamp(0)))
+
+proc failedAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.failed_at.get(Timestamp(0)))
+
+proc expiredAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.expired_at.get(Timestamp(0)))
+
+proc expiresAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.expires_at.get(Timestamp(0)))
+
+proc cancellingAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.cancelling_at.get(Timestamp(0)))
+
+proc cancelledAt*(x: Batch): int64 {.inline.} =
+  result = int64(x.cancelled_at.get(Timestamp(0)))
+
+proc errorCount*(x: Batch): int {.inline.} =
+  result = x.errors.get(BatchErrors()).data.len
+
+proc lineOf*(x: BatchError): int64 {.inline.} =
+  result = x.line.get(0)
+
 proc modelOf*(x: Batch): lent string {.inline.} =
   result = x.model
 
@@ -118,6 +165,9 @@ proc outputFileId*(x: Batch): lent string {.inline.} =
 
 proc errorFileId*(x: Batch): lent string {.inline.} =
   result = x.error_file_id
+
+proc metadataOf*(x: Batch): string {.inline.} =
+  result = string(x.metadata)
 
 proc totalRequests*(x: Batch): int {.inline.} =
   result = x.request_counts.get(BatchRequestCounts()).total

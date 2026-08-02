@@ -1,5 +1,8 @@
 import std/options
 export options
+import ../timestamp
+
+export timestamp
 
 {.define: jsonxLenient.}
 
@@ -12,11 +15,11 @@ type
   FileObject* = object
     id*: string
     bytes*: int
-    created_at*: int64
+    created_at*: Timestamp
     filename*: string
     `object`*: string
     purpose*: FilePurpose
-    expires_at*: Option[int64]
+    expires_at*: Option[Timestamp]
 
   FileDeleted* = object
     id*: string

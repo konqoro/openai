@@ -6,5 +6,6 @@
 /tests/tembeddings
 /tests/tfiles
 /tests/tbatch
+/tests/tpackage
 /tests/tester
 /test_live_ocr

@@ -97,7 +97,7 @@ proc testFileParseAndAccessors() =
   doAssert idOf(file) == "file-abc123"
   doAssert file.purpose == FilePurpose.fine_tune
   doAssert file.bytes == 120000
-  doAssert file.expires_at.isNone
+  doAssert expiresAt(file) == 0
 
   var list: FileList
   doAssert fileListParse(FileListResponse, list)

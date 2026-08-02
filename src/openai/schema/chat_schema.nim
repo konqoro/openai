@@ -2,6 +2,9 @@ import std/options
 export options
 import jsonx
 import jsonx/[parsejson, streams]
+import ../timestamp
+
+export timestamp
 
 {.define: jsonxLenient.}
 
@@ -67,6 +70,7 @@ type
 
   OpenAIChatCompletionOut* = object
     id*: string
+    created*: Timestamp
     model*: string
     choices*: seq[OpenAIChatCompletionChoice]
     usage*: UsageInfo

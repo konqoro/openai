@@ -5,6 +5,7 @@ import std/strutils
 
 const GoodResponse = """{
   "id": "cmpl_1",
+  "created": 1711652795,
   "model": "gpt-4.1-mini",
   "choices": [
     {
@@ -444,6 +445,7 @@ proc testResponseGettersWithTextContent() =
   var parsed: ChatCreateResult
   doAssert chatParse(GoodResponse, parsed)
   doAssert idOf(parsed) == "cmpl_1"
+  doAssert createdAt(parsed) == 1711652795
   doAssert modelOf(parsed) == "gpt-4.1-mini"
   doAssert choices(parsed) == 1
   doAssert finish(parsed) == FinishReason.stop

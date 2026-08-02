@@ -12,6 +12,14 @@ proc withDefaultHeaders*(cfg: OpenAIConfig;
   result = cfg.withAuthHeader(headers)
   result["Content-Type"] = "application/json"
 
+proc queryString*(params: QueryParams): string =
+  ## Serializes `params` as a URL query string including the leading `?`,
+  ## or "" when the query is empty.
+  if params.len > 0:
+    result = "?" & $params
+  else:
+    result = ""
+
 proc jsonRequest*[T](cfg: OpenAIConfig; verb: HttpVerb; url: string;
     params: T; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =

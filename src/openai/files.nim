@@ -14,17 +14,6 @@ const
 type
   FileCreateResult* = FileObject
 
-proc listQuery(after, purpose: string; limit: int): string =
-  var parts: seq[string] = @[]
-  if after.len > 0:
-    parts.add("after=" & after)
-  if purpose.len > 0:
-    parts.add("purpose=" & purpose)
-  if limit > 0:
-    parts.add("limit=" & $limit)
-  if parts.len > 0:
-    result = "?" & parts.join("&")
-
 proc fileUploadBody*(filename, purpose, content, boundary: string): string =
   result = "--" & boundary & "\r\n" &
     "Content-Disposition: form-data; name=\"purpose\"\r\n\r\n" &
@@ -77,8 +66,15 @@ proc fileRetrieveRequest*(cfg: OpenAIConfig; fileId: string; url = "";
 proc fileListRequest*(cfg: OpenAIConfig; after = ""; purpose = ""; limit = 0;
     url = ""; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
+  var params: QueryParams
+  if after.len > 0:
+    params["after"] = after
+  if purpose.len > 0:
+    params["purpose"] = purpose
+  if limit > 0:
+    params["limit"] = $limit
   let target = if url.len > 0: url else:
-    OpenAIFilesUrl & listQuery(after, purpose, limit)
+    OpenAIFilesUrl & queryString(params)
   plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
 
 proc fileContentRequest*(cfg: OpenAIConfig; fileId: string; url = "";
@@ -119,3 +115,6 @@ proc idOf*(x: FileObject): lent string {.inline.} =
 
 proc idOf*(x: var FileObject): var string {.inline.} =
   result = x.id
+
+proc expiresAt*(x: FileObject): int64 {.inline.} =
+  result = int64(x.expires_at.get(Timestamp(0)))

@@ -50,6 +50,23 @@ const ValidatingBatchResponse = """{
   "created_at": 1711471533
 }"""
 
+const FailedBatchResponse = """{
+  "id": "batch_fail1",
+  "object": "batch",
+  "endpoint": "/v1/chat/completions",
+  "input_file_id": "file-abc123",
+  "completion_window": "24h",
+  "status": "failed",
+  "created_at": 1711471533,
+  "failed_at": 1711472133,
+  "errors": {
+    "object": "list",
+    "data": [
+      {"code": "invalid_json", "line": 3, "message": "bad line", "param": null}
+    ]
+  }
+}"""
+
 const BatchListResponse = """{
   "object": "list",
   "data": [""" & CompletedBatchResponse & """],
@@ -144,15 +161,28 @@ proc testBatchParseAndAccessors() =
   doAssert totalTokens(parsed) == 1200
   doAssert cachedInputTokens(parsed) == 960
   doAssert reasoningOutputTokens(parsed) == 0
-  doAssert parsed.completed_at.isSome
-  doAssert parsed.completed_at.get == 1711493163
-  doAssert parsed.failed_at.isNone
-  doAssert parsed.metadata.isSome
+  doAssert completedAt(parsed) == 1711493163
+  doAssert failedAt(parsed) == 0
+  doAssert not isFailed(parsed)
+  doAssert not isExpired(parsed)
+  doAssert not isCancelled(parsed)
+  doAssert errorCount(parsed) == 0
+  doAssert metadataOf(parsed).contains("customer_id")
 
   var validating: Batch
   doAssert batchParse(ValidatingBatchResponse, validating)
   doAssert statusOf(validating) == BatchStatus.validating
   doAssert not isTerminal(validating)
+  doAssert metadataOf(validating) == ""
+
+  var failed: Batch
+  doAssert batchParse(FailedBatchResponse, failed)
+  doAssert isFailed(failed)
+  doAssert failedAt(failed) == 1711472133
+  doAssert errorCount(failed) == 1
+  doAssert failed.errors.isSome
+  doAssert failed.errors.get.data[0].code == "invalid_json"
+  doAssert lineOf(failed.errors.get.data[0]) == 3
 
 proc testBatchParseFailure() =
   var parsed: Batch
