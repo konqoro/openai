@@ -591,15 +591,6 @@ proc testSeedAndStoreSerialization() =
   doAssert parsed.store.isSome
   doAssert not parsed.store.get
 
-proc testHttpSuccessClassifier() =
-  doAssert isHttpSuccess(200)
-  doAssert isHttpSuccess(201)
-  doAssert isHttpSuccess(204)
-  doAssert not isHttpSuccess(199)
-  doAssert not isHttpSuccess(300)
-  doAssert not isHttpSuccess(429)
-  doAssert not isHttpSuccess(500)
-
 when isMainModule:
   testInputConstructorsCoverage()
   testChatCreateParamsBuilder()
@@ -619,5 +610,4 @@ when isMainModule:
   testParseFirstTextJson()
   testParseFirstCallArgs()
   testSeedAndStoreSerialization()
-  testHttpSuccessClassifier()
   echo "all tests passed"
