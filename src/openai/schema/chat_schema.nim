@@ -1,7 +1,7 @@
+import std/options
+
 import jsonx
 import jsonx/[parsejson, streams]
-
-{.define: jsonxLenient.}
 
 type
   ChatMessageRole* = enum
@@ -52,22 +52,41 @@ type
     role*: ChatMessageRole
     tool_calls*: seq[ChatCompletionMessageToolCall]
     content*: ChatCompletionAssistantContent
+    refusal*: Option[string]
+    annotations*: seq[RawJson]
 
   OpenAIChatCompletionChoice* = object
     index*: int
     message*: ChatCompletionAssistantMessage
     finish_reason*: FinishReason
 
+  PromptTokenDetails* = object
+    cached_tokens*: int
+    cache_write_tokens*: int
+    audio_tokens*: int
+
+  CompletionTokenDetails* = object
+    reasoning_tokens*: int
+    audio_tokens*: int
+    accepted_prediction_tokens*: int
+    rejected_prediction_tokens*: int
+
   UsageInfo* = object
     prompt_tokens*: int
     completion_tokens*: int
     total_tokens*: int
+    prompt_tokens_details*: Option[PromptTokenDetails]
+    completion_tokens_details*: Option[CompletionTokenDetails]
 
   OpenAIChatCompletionOut* = object
     id*: string
+    `object`*: string
+    created*: int64
     model*: string
     choices*: seq[OpenAIChatCompletionChoice]
     usage*: UsageInfo
+    service_tier*: string
+    system_fingerprint*: Option[string]
 
   ChatCompletionInputContentKind* = enum
     text, parts
@@ -130,6 +149,9 @@ type
     stream*: bool
     temperature*: float
     max_tokens*: int
+    max_completion_tokens*: int
+    seed*: Option[int64]
+    store*: Option[bool]
     tools*: seq[ChatTool]
     tool_choice*: ToolChoice
     response_format*: ResponseFormat
@@ -243,6 +265,12 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
     writeJsonField(s, "temperature", x.temperature)
   if x.max_tokens != 0:
     writeJsonField(s, "max_tokens", x.max_tokens)
+  if x.max_completion_tokens != 0:
+    writeJsonField(s, "max_completion_tokens", x.max_completion_tokens)
+  if x.seed.isSome:
+    writeJsonField(s, "seed", x.seed.get)
+  if x.store.isSome:
+    writeJsonField(s, "store", x.store.get)
   if x.tools.len > 0:
     writeJsonField(s, "tools", x.tools)
     if x.tool_choice == ToolChoice.required:
