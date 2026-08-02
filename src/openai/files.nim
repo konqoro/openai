@@ -8,7 +8,7 @@ export core
 export files_schema
 
 const
-  OpenAIFilesUrl* = "https://api.openai.com/v1/files"
+  FilesPath = "/files"
   DefaultMultipartBoundary* = "openai-nim-batch"
 
 type
@@ -25,15 +25,14 @@ proc fileUploadBody*(filename, purpose, content, boundary: string): string =
     "--" & boundary & "--\r\n"
 
 proc fileUploadRequest*(cfg: OpenAIConfig; filename, purpose: string;
-    content: sink string; boundary = DefaultMultipartBoundary; url = "";
+    content: sink string; boundary = DefaultMultipartBoundary;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else: OpenAIFilesUrl
   var hs = cfg.withAuthHeader(headers)
   hs["Content-Type"] = "multipart/form-data; boundary=" & boundary
   RequestSpec(
     verb: hvPost,
-    url: target,
+    url: cfg.url & FilesPath,
     headers: hs,
     body: fileUploadBody(filename, purpose, content, boundary),
     requestId: requestId,
@@ -42,29 +41,28 @@ proc fileUploadRequest*(cfg: OpenAIConfig; filename, purpose: string;
 
 proc fileUploadAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     filename, purpose: string; content: sink string;
-    boundary = DefaultMultipartBoundary; url = "";
+    boundary = DefaultMultipartBoundary;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  let target = if url.len > 0: url else: OpenAIFilesUrl
   var hs = cfg.withAuthHeader(headers)
   hs["Content-Type"] = "multipart/form-data; boundary=" & boundary
   batch.addRequest(
     verb = hvPost,
-    url = target,
+    url = cfg.url & FilesPath,
     headers = hs,
     body = fileUploadBody(filename, purpose, content, boundary),
     requestId = requestId,
     timeoutMs = timeoutMs
   )
 
-proc fileRetrieveRequest*(cfg: OpenAIConfig; fileId: string; url = "";
+proc fileRetrieveRequest*(cfg: OpenAIConfig; fileId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else: OpenAIFilesUrl & "/" & fileId
-  plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
+  plainRequest(cfg, hvGet, cfg.url & FilesPath & "/" & fileId,
+    requestId, timeoutMs, headers)
 
 proc fileListRequest*(cfg: OpenAIConfig; after = ""; purpose = ""; limit = 0;
-    url = ""; requestId = 0'i64; timeoutMs = 0;
+    requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   var params: QueryParams
   if after.len > 0:
@@ -73,21 +71,20 @@ proc fileListRequest*(cfg: OpenAIConfig; after = ""; purpose = ""; limit = 0;
     params["purpose"] = purpose
   if limit > 0:
     params["limit"] = $limit
-  let target = if url.len > 0: url else:
-    OpenAIFilesUrl & queryString(params)
-  plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
+  plainRequest(cfg, hvGet, cfg.url & FilesPath & queryString(params),
+    requestId, timeoutMs, headers)
 
-proc fileContentRequest*(cfg: OpenAIConfig; fileId: string; url = "";
+proc fileContentRequest*(cfg: OpenAIConfig; fileId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else: OpenAIFilesUrl & "/" & fileId & "/content"
-  plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
+  plainRequest(cfg, hvGet, cfg.url & FilesPath & "/" & fileId & "/content",
+    requestId, timeoutMs, headers)
 
-proc fileDeleteRequest*(cfg: OpenAIConfig; fileId: string; url = "";
+proc fileDeleteRequest*(cfg: OpenAIConfig; fileId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else: OpenAIFilesUrl & "/" & fileId
-  plainRequest(cfg, hvDelete, target, requestId, timeoutMs, headers)
+  plainRequest(cfg, hvDelete, cfg.url & FilesPath & "/" & fileId,
+    requestId, timeoutMs, headers)
 
 proc fileParse*(body: string; dst: var FileObject): bool =
   try:

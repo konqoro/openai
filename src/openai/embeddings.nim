@@ -6,7 +6,7 @@ import ./schema/embeddings_schema
 export core
 export embeddings_schema
 
-const OpenAIEmbeddingsUrl* = "https://api.openai.com/v1/embeddings"
+const EmbeddingsPath = "/embeddings"
 
 type
   EmbeddingCreateParams* = OpenAIEmbeddingsIn
@@ -23,12 +23,14 @@ proc embeddingCreate*(model, input: sink string;
 proc embeddingRequest*(cfg: OpenAIConfig; params: EmbeddingCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  jsonPostRequest(cfg, params, requestId, timeoutMs, headers)
+  jsonPostRequest(cfg, cfg.url & EmbeddingsPath, params,
+    requestId, timeoutMs, headers)
 
 proc embeddingAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: EmbeddingCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  jsonPostAdd(batch, cfg, params, requestId, timeoutMs, headers)
+  jsonPostAdd(batch, cfg, cfg.url & EmbeddingsPath, params,
+    requestId, timeoutMs, headers)
 
 proc embeddingParse*(body: string; dst: var EmbeddingCreateResult): bool =
   try:

@@ -1,6 +1,8 @@
-const OpenAIChatCompletionsUrl* = "https://api.openai.com/v1/chat/completions"
+const OpenAIBaseUrl* = "https://api.openai.com/v1"
 
 type
   OpenAIConfig* = object
-    url*: string = OpenAIChatCompletionsUrl
     apiKey*: string
+    url*: string = OpenAIBaseUrl
+    organization*: string
+    project*: string

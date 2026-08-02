@@ -5,7 +5,7 @@ import openai/chat
 {.passL: "-lcurl".}
 
 const
-  ApiUrl = "https://api.deepinfra.com/v1/openai/chat/completions"
+  ApiUrl = "https://api.deepinfra.com/v1/openai"
   ModelName = "mistralai/Mistral-Nemo-Instruct-2407"
   TotalRequests = 12
   RequestsPerBatch = 3

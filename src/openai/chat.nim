@@ -6,6 +6,8 @@ import ./schema/chat_schema
 export core
 export chat_schema
 
+const ChatCompletionsPath = "/chat/completions"
+
 type
   ChatCreateParams* = OpenAIChatCompletionsIn
   ChatCreateResult* = OpenAIChatCompletionOut
@@ -162,12 +164,14 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
 proc chatRequest*(cfg: OpenAIConfig; params: ChatCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  jsonPostRequest(cfg, params, requestId, timeoutMs, headers)
+  jsonPostRequest(cfg, cfg.url & ChatCompletionsPath, params,
+    requestId, timeoutMs, headers)
 
 proc chatAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: ChatCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  jsonPostAdd(batch, cfg, params, requestId, timeoutMs, headers)
+  jsonPostAdd(batch, cfg, cfg.url & ChatCompletionsPath, params,
+    requestId, timeoutMs, headers)
 
 proc chatParse*(body: string; dst: var ChatCreateResult): bool =
   try:

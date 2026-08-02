@@ -5,7 +5,7 @@ import openai/chat
 {.passL: "-lcurl".}
 
 const
-  ApiUrl = "https://api.deepinfra.com/v1/openai/chat/completions"
+  ApiUrl = "https://api.deepinfra.com/v1/openai"
   ModelName = "allenai/olmOCR-2-7B-1025"
   ImagePath = "examples/test.jpg"
   OcrInstruction = "Extract all readable text exactly."

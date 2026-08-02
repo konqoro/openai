@@ -48,6 +48,19 @@ import openai/batch      # batch API only
 
 Retry policy helpers live in `relay/retry` and status classifiers in `relay/http_status`; they are not part of the OpenAI API surface.
 
+## Configuration
+
+`OpenAIConfig` holds the API key and the API **base** URL; every request
+builder derives its endpoint from `cfg.url`:
+
+```nim
+OpenAIConfig(apiKey: getEnv("OPENAI_API_KEY"))          # https://api.openai.com/v1
+OpenAIConfig(apiKey: key, url: "https://api.deepinfra.com/v1/openai")
+```
+
+`organization` and `project`, when set, are sent as `OpenAI-Organization` /
+`OpenAI-Project` headers.
+
 ## What Feels Different
 
 Build requests with readable helpers:
@@ -95,13 +108,8 @@ import openai/chat
 
 {.passL: "-lcurl".}
 
-const ApiUrl = "https://api.openai.com/v1/chat/completions"
-
 proc main() =
-  let cfg = OpenAIConfig(
-    url: ApiUrl,
-    apiKey: getEnv("OPENAI_API_KEY")
-  )
+  let cfg = OpenAIConfig(apiKey: getEnv("OPENAI_API_KEY"))
 
   let params = chatCreate(
     model = "gpt-4.1-mini",
@@ -134,10 +142,8 @@ import openai/chat
 
 {.passL: "-lcurl".}
 
-const ApiUrl = "https://api.openai.com/v1/chat/completions"
-
 proc main() =
-  let cfg = OpenAIConfig(url: ApiUrl, apiKey: getEnv("OPENAI_API_KEY"))
+  let cfg = OpenAIConfig(apiKey: getEnv("OPENAI_API_KEY"))
   let client = newRelay(maxInFlight = 4, defaultTimeoutMs = 30_000)
   defer: client.close()
 
@@ -283,7 +289,6 @@ import openai/[batch, chat]
 
 proc main() =
   let cfg = OpenAIConfig(
-    url: OpenAIBatchesUrl,
     apiKey: getEnv("OPENAI_API_KEY")
   )
   let client = newRelay(maxInFlight = 1, defaultTimeoutMs = 30_000)

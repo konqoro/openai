@@ -81,7 +81,7 @@ const OutputLineError = """{"id":"batch_req_123","custom_id":"request-3","respon
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
-    url: OpenAIBatchesUrl,
+    url: OpenAIBaseUrl,
     apiKey: apiKey
   )
 
@@ -112,21 +112,21 @@ proc testBatchRequestBuilders() =
   let create = batchCreateRequest(cfg, batchCreate("file-abc123",
     "/v1/chat/completions"), requestId = 2)
   doAssert create.verb == hvPost
-  doAssert create.url == OpenAIBatchesUrl
+  doAssert create.url == cfg.url & "/batches"
   doAssert create.body ==
     """{"input_file_id":"file-abc123","endpoint":"/v1/chat/completions","completion_window":"24h"}"""
 
   let retrieve = batchRetrieveRequest(cfg, "batch_abc123")
   doAssert retrieve.verb == hvGet
-  doAssert retrieve.url == OpenAIBatchesUrl & "/batch_abc123"
+  doAssert retrieve.url == cfg.url & "/batches/batch_abc123"
 
   let list = batchListRequest(cfg, after = "batch_abc", limit = 20)
   doAssert list.verb == hvGet
-  doAssert list.url == OpenAIBatchesUrl & "?after=batch_abc&limit=20"
+  doAssert list.url == cfg.url & "/batches?after=batch_abc&limit=20"
 
   let cancel = batchCancelRequest(cfg, "batch_abc123")
   doAssert cancel.verb == hvPost
-  doAssert cancel.url == OpenAIBatchesUrl & "/batch_abc123/cancel"
+  doAssert cancel.url == cfg.url & "/batches/batch_abc123/cancel"
   doAssert cancel.body.len == 0
 
 proc testInputLineJson() =

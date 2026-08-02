@@ -6,7 +6,7 @@ import ./schema/audio_speech_schema
 export core
 export audio_speech_schema
 
-const OpenAIAudioSpeechUrl* = "https://api.openai.com/v1/audio/speech"
+const AudioSpeechPath = "/audio/speech"
 
 type
   AudioSpeechCreateParams* = OpenAIAudioSpeechIn
@@ -30,9 +30,11 @@ proc speechCreate*(model, input: sink string; voice = "";
 proc speechRequest*(cfg: OpenAIConfig; params: AudioSpeechCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  jsonPostRequest(cfg, params, requestId, timeoutMs, headers)
+  jsonPostRequest(cfg, cfg.url & AudioSpeechPath, params,
+    requestId, timeoutMs, headers)
 
 proc speechAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     params: AudioSpeechCreateParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  jsonPostAdd(batch, cfg, params, requestId, timeoutMs, headers)
+  jsonPostAdd(batch, cfg, cfg.url & AudioSpeechPath, params,
+    requestId, timeoutMs, headers)

@@ -10,7 +10,7 @@
   - `batch.nim`: Batches API helpers, JSONL line builders, and output/error
     line parsing.
   - `files.nim`: Files API helpers including multipart upload.
-  - `core.nim`: shared config (`OpenAIConfig`) and URL constants.
+  - `core.nim`: shared config (`OpenAIConfig` with base URL, key, org, project).
   - `http.nim`: shared header/request builders over relay, query-string helper.
   - `timestamp.nim`: shared Unix-timestamp value type with jsonx hooks.
   - `schema/`: direct JSON-mapped schema types grouped by capability.

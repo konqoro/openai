@@ -6,6 +6,10 @@ proc withAuthHeader*(cfg: OpenAIConfig;
     headers: sink HttpHeaders = emptyHttpHeaders()): HttpHeaders =
   result = headers
   result["Authorization"] = "Bearer " & cfg.apiKey
+  if cfg.organization.len > 0:
+    result["OpenAI-Organization"] = cfg.organization
+  if cfg.project.len > 0:
+    result["OpenAI-Project"] = cfg.project
 
 proc withDefaultHeaders*(cfg: OpenAIConfig;
     headers: sink HttpHeaders = emptyHttpHeaders()): HttpHeaders =
@@ -70,26 +74,12 @@ proc plainAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     timeoutMs = timeoutMs
   )
 
-proc jsonPostRequest*[T](cfg: OpenAIConfig; params: T;
+proc jsonPostRequest*[T](cfg: OpenAIConfig; url: string; params: T;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  RequestSpec(
-    verb: hvPost,
-    url: cfg.url,
-    headers: cfg.withDefaultHeaders(headers),
-    body: toJson(params),
-    requestId: requestId,
-    timeoutMs: timeoutMs
-  )
+  jsonRequest(cfg, hvPost, url, params, requestId, timeoutMs, headers)
 
-proc jsonPostAdd*[T](batch: var RequestBatch; cfg: OpenAIConfig; params: T;
-    requestId = 0'i64; timeoutMs = 0;
+proc jsonPostAdd*[T](batch: var RequestBatch; cfg: OpenAIConfig; url: string;
+    params: T; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
-  batch.addRequest(
-    verb = hvPost,
-    url = cfg.url,
-    headers = cfg.withDefaultHeaders(headers),
-    body = toJson(params),
-    requestId = requestId,
-    timeoutMs = timeoutMs
-  )
+  jsonAdd(batch, cfg, hvPost, url, params, requestId, timeoutMs, headers)

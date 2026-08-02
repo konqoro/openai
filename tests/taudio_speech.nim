@@ -5,7 +5,7 @@ import openai/audio_speech
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
-    url: OpenAIAudioSpeechUrl,
+    url: OpenAIBaseUrl,
     apiKey: apiKey
   )
 
@@ -65,7 +65,7 @@ proc testSpeechRequest() =
   )
 
   doAssert req.verb == hvPost
-  doAssert req.url == cfg.url
+  doAssert req.url == cfg.url & "/audio/speech"
   doAssert req.requestId == 42
   doAssert req.timeoutMs == 7_000
   doAssert req.headers["Authorization"] == "Bearer new-token"

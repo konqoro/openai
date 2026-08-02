@@ -44,7 +44,7 @@ template expectValueError(body: untyped) =
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
-    url: "https://api.openai.com/v1/embeddings",
+    url: OpenAIBaseUrl,
     apiKey: apiKey
   )
 
@@ -68,7 +68,7 @@ proc testEmbeddingRequest() =
   )
 
   doAssert req.verb == hvPost
-  doAssert req.url == cfg.url
+  doAssert req.url == cfg.url & "/embeddings"
   doAssert req.requestId == 42
   doAssert req.timeoutMs == 7_000
   doAssert req.headers["Authorization"] == "Bearer new-token"

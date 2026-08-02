@@ -120,7 +120,7 @@ proc sampleParams(streamValue = false): ChatCreateParams =
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
-    url: "https://api.openai.com/v1/chat/completions",
+    url: OpenAIBaseUrl,
     apiKey: apiKey
   )
 
@@ -140,7 +140,7 @@ proc testChatRequest() =
   )
 
   doAssert req.verb == hvPost
-  doAssert req.url == cfg.url
+  doAssert req.url == cfg.url & "/chat/completions"
   doAssert req.requestId == 42
   doAssert req.timeoutMs == 7_000
   doAssert req.headers["Authorization"] == "Bearer new-token"
@@ -421,7 +421,7 @@ proc testChatAdd() =
 
   doAssert batch.len == 2
   doAssert batch[0].verb == hvPost
-  doAssert batch[0].url == cfg.url
+  doAssert batch[0].url == cfg.url & "/chat/completions"
   doAssert batch[0].requestId == 11
   doAssert batch[0].timeoutMs == 1_500
   doAssert batch[0].headers["Authorization"] == "Bearer batch-token"

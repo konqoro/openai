@@ -29,7 +29,7 @@ const FileDeletedResponse = """{
 
 proc sampleConfig(apiKey = "sk-test"): OpenAIConfig =
   OpenAIConfig(
-    url: OpenAIFilesUrl,
+    url: OpenAIBaseUrl,
     apiKey: apiKey
   )
 
@@ -51,7 +51,7 @@ proc testFileUploadRequest() =
   )
 
   doAssert req.verb == hvPost
-  doAssert req.url == OpenAIFilesUrl
+  doAssert req.url == cfg.url & "/files"
   doAssert req.requestId == 7
   doAssert req.timeoutMs == 60_000
   doAssert req.headers["Authorization"] == "Bearer new-token"
@@ -69,27 +69,27 @@ proc testFileRequestBuilders() =
 
   let retrieve = fileRetrieveRequest(cfg, "file-abc123", requestId = 1)
   doAssert retrieve.verb == hvGet
-  doAssert retrieve.url == OpenAIFilesUrl & "/file-abc123"
+  doAssert retrieve.url == cfg.url & "/files/file-abc123"
   doAssert retrieve.body.len == 0
 
   let list = fileListRequest(cfg, after = "file-abc", purpose = "batch", limit = 10)
   doAssert list.verb == hvGet
-  doAssert list.url == OpenAIFilesUrl & "?after=file-abc&purpose=batch&limit=10"
+  doAssert list.url == cfg.url & "/files?after=file-abc&purpose=batch&limit=10"
 
   let plainList = fileListRequest(cfg)
-  doAssert plainList.url == OpenAIFilesUrl
+  doAssert plainList.url == cfg.url & "/files"
 
   let content = fileContentRequest(cfg, "file-abc123")
   doAssert content.verb == hvGet
-  doAssert content.url == OpenAIFilesUrl & "/file-abc123/content"
+  doAssert content.url == cfg.url & "/files/file-abc123/content"
 
   let delete = fileDeleteRequest(cfg, "file-abc123")
   doAssert delete.verb == hvDelete
-  doAssert delete.url == OpenAIFilesUrl & "/file-abc123"
+  doAssert delete.url == cfg.url & "/files/file-abc123"
 
-  let overridden = fileRetrieveRequest(cfg, "file-abc123",
-    url = "http://localhost:9000/v1/files/other")
-  doAssert overridden.url == "http://localhost:9000/v1/files/other"
+  let fake = OpenAIConfig(url: "http://localhost:9000/v1", apiKey: "sk-test")
+  doAssert fileRetrieveRequest(fake, "file-abc123").url ==
+    "http://localhost:9000/v1/files/file-abc123"
 
 proc testFileParseAndAccessors() =
   var file: FileObject

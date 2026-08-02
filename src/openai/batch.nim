@@ -8,7 +8,7 @@ export core
 export batch_schema
 
 const
-  OpenAIBatchesUrl* = "https://api.openai.com/v1/batches"
+  BatchesPath = "/batches"
   BatchCompletionWindow* = "24h"
 
 type
@@ -29,18 +29,18 @@ proc outputExpiresAfter*(seconds: int;
   OutputExpiresAfter(anchor: anchor, seconds: seconds)
 
 proc batchCreateRequest*(cfg: OpenAIConfig; params: BatchCreateParams;
-    url = ""; requestId = 0'i64; timeoutMs = 0;
-    headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else: OpenAIBatchesUrl
-  jsonRequest(cfg, hvPost, target, params, requestId, timeoutMs, headers)
-
-proc batchRetrieveRequest*(cfg: OpenAIConfig; batchId: string; url = "";
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else: OpenAIBatchesUrl & "/" & batchId
-  plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
+  jsonRequest(cfg, hvPost, cfg.url & BatchesPath, params,
+    requestId, timeoutMs, headers)
 
-proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0; url = "";
+proc batchRetrieveRequest*(cfg: OpenAIConfig; batchId: string;
+    requestId = 0'i64; timeoutMs = 0;
+    headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
+  plainRequest(cfg, hvGet, cfg.url & BatchesPath & "/" & batchId,
+    requestId, timeoutMs, headers)
+
+proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   var params: QueryParams
@@ -48,16 +48,15 @@ proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0; url = "";
     params["after"] = after
   if limit > 0:
     params["limit"] = $limit
-  let target = if url.len > 0: url else:
-    OpenAIBatchesUrl & queryString(params)
-  plainRequest(cfg, hvGet, target, requestId, timeoutMs, headers)
+  plainRequest(cfg, hvGet, cfg.url & BatchesPath & queryString(params),
+    requestId, timeoutMs, headers)
 
-proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string; url = "";
+proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  let target = if url.len > 0: url else:
-    OpenAIBatchesUrl & "/" & batchId & "/cancel"
-  plainRequest(cfg, hvPost, target, requestId, timeoutMs, headers)
+  plainRequest(cfg, hvPost,
+    cfg.url & BatchesPath & "/" & batchId & "/cancel",
+    requestId, timeoutMs, headers)
 
 proc batchInputLine*(customId: sink string; body: sink RawJson;
     verb = "POST"; url = "/v1/chat/completions"): BatchInputLine =
