@@ -46,12 +46,12 @@ proc retryDelayMs*(rng: var Rand; attempt: int; policy: RetryPolicy): int =
   let jitter = rng.rand(jitterMax)
   result = capped + jitter
 
-proc isRetriableStatus*(code: int): bool {.inline.} =
+proc isRetriableStatus*(code: HttpCode): bool {.inline.} =
   case code
-  of 408, 409, 425, 429:
+  of Http408, Http409, Http425, Http429:
     result = true
   else:
-    result = code >= 500 and code <= 599
+    result = is5xx(code)
 
 proc isRetriableTransport*(kind: TransportErrorKind): bool {.inline.} =
   case kind

@@ -71,7 +71,7 @@ Send with Relay directly:
 ```nim
 let item = client.makeRequest(chatRequest(cfg, params))
 var parsed: ChatCreateResult
-if item.error.kind == teNone and item.response.code == 200 and
+if item.error.kind == teNone and item.response.code == Http200 and
     chatParse(item.response.body, parsed):
   echo "model=", modelOf(parsed)
   echo "text=", firstText(parsed)
@@ -117,7 +117,7 @@ proc main() =
 
   let item = client.makeRequest(chatRequest(cfg, params))
   var parsed: ChatCreateResult
-  if item.error.kind == teNone and item.response.code == 200 and
+  if item.error.kind == teNone and item.response.code == Http200 and
       chatParse(item.response.body, parsed):
     echo "model=", modelOf(parsed)
     echo "text=", firstText(parsed)
@@ -159,7 +159,7 @@ proc main() =
     var item: RequestResult
     if client.waitForResult(item):
       var parsed: ChatCreateResult
-      if item.error.kind == teNone and item.response.code == 200 and
+      if item.error.kind == teNone and item.response.code == Http200 and
           chatParse(item.response.body, parsed):
         echo item.response.request.requestId, ": ", firstText(parsed)
       dec remaining
