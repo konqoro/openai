@@ -344,7 +344,7 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
     let item = client.makeRequest(chatRequest(cfg, params, requestId = attempt.int64))
     discard chatParse(item.response.body, result)
     let canRetry = attempt < maxAttempts and
-      (isRetryableTransport(item.error.kind) or isRetryableStatus(item.response.code))
+      (isRetryable(item.error.kind) or isRetryable(item.response.code))
     if canRetry:
       sleep(retryDelayMs(rng, attempt, policy))
     else:
@@ -367,8 +367,7 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
   `calls`, `firstCallName`, `firstCallArgs`, `promptTokens`,
   `completionTokens`, `totalTokens`
 - Retry helpers:
-  `defaultRetryPolicy`, `retryDelayMs`, `isRetryableStatus`,
-  `isRetryableTransport` (from `relay/retry`)
+  `defaultRetryPolicy`, `retryDelayMs`, `isRetryable` (from `relay/retry`)
 - Batch helpers (from `openai/batch`):
   `batchCreate`, `batchCreateRequest`, `batchRetrieveRequest`,
   `batchListRequest`, `batchCancelRequest`, `batchParse`, `batchListParse`,

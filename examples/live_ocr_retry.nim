@@ -32,10 +32,8 @@ proc buildOcrParams(imageDataUrl: string): ChatCreateParams =
 
 proc shouldRetry(item: RequestResult; attempt: int; maxAttempts: int): bool =
   let hasMoreAttempts = attempt < maxAttempts
-  let retryTransport = item.error.kind != teNone and
-    isRetryableTransport(item.error.kind)
-  let retryHttpStatus = item.error.kind == teNone and
-    isRetryableStatus(item.response.code)
+  let retryTransport = item.error.kind != teNone and isRetryable(item.error.kind)
+  let retryHttpStatus = item.error.kind == teNone and isRetryable(item.response.code)
   result = hasMoreAttempts and (retryTransport or retryHttpStatus)
 
 proc requestWithRetry(client: Relay; endpoint: OpenAIConfig; params: ChatCreateParams;
