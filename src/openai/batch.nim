@@ -14,15 +14,6 @@ const
 type
   BatchCreateResult* = Batch
 
-proc listQuery(after: string; limit: int): string =
-  var parts: seq[string] = @[]
-  if after.len > 0:
-    parts.add("after=" & after)
-  if limit > 0:
-    parts.add("limit=" & $limit)
-  if parts.len > 0:
-    result = "?" & parts.join("&")
-
 proc batchCreate*(inputFileId, endpoint: sink string;
     completionWindow = BatchCompletionWindow;
     metadata: sink RawJson = RawJson("")): BatchCreateParams =
