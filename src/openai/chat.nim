@@ -13,14 +13,14 @@ type
   ChatCreateResult* = OpenAIChatCompletionOut
 
 proc partText*(text: sink string): ChatCompletionContentPart =
-  ChatCompletionContentPart(
+  result = ChatCompletionContentPart(
     `type`: ChatCompletionContentPartType.text,
     text: text
   )
 
 proc partImageUrl*(url: sink string;
     detail = ImageDetail.auto): ChatCompletionContentPart =
-  ChatCompletionContentPart(
+  result = ChatCompletionContentPart(
     `type`: ChatCompletionContentPartType.image_url,
     image_url: ImageUrl(
       url: url,
@@ -30,7 +30,7 @@ proc partImageUrl*(url: sink string;
 
 proc partInputAudio*(data: sink string;
     format: InputAudioFormat): ChatCompletionContentPart =
-  ChatCompletionContentPart(
+  result = ChatCompletionContentPart(
     `type`: ChatCompletionContentPartType.input_audio,
     input_audio: InputAudio(
       data: data,
@@ -39,26 +39,26 @@ proc partInputAudio*(data: sink string;
   )
 
 proc contentText*(text: sink string): ChatCompletionMessageContent =
-  ChatCompletionMessageContent(
+  result = ChatCompletionMessageContent(
     kind: ChatCompletionInputContentKind.text,
     text: text
   )
 
 proc contentParts*(parts: sink seq[ChatCompletionContentPart]): ChatCompletionMessageContent =
-  ChatCompletionMessageContent(
+  result = ChatCompletionMessageContent(
     kind: ChatCompletionInputContentKind.parts,
     parts: parts
   )
 
 proc systemMessageText*(text: sink string; name: sink string = ""): ChatMessage =
-  ChatMessage(
+  result = ChatMessage(
     role: ChatMessageRole.system,
     content: contentText(text),
     name: name
   )
 
 proc userMessageText*(text: sink string; name: sink string = ""): ChatMessage =
-  ChatMessage(
+  result = ChatMessage(
     role: ChatMessageRole.user,
     content: contentText(text),
     name: name
@@ -66,27 +66,27 @@ proc userMessageText*(text: sink string; name: sink string = ""): ChatMessage =
 
 proc userMessageParts*(parts: sink seq[ChatCompletionContentPart];
     name: sink string = ""): ChatMessage =
-  ChatMessage(
+  result = ChatMessage(
     role: ChatMessageRole.user,
     content: contentParts(parts),
     name: name
   )
 
 proc assistantMessageText*(text: sink string; name: sink string = ""): ChatMessage =
-  ChatMessage(
+  result = ChatMessage(
     role: ChatMessageRole.assistant,
     content: contentText(text),
     name: name
   )
 
 proc assistantMessageToolCalls*(toolCalls: sink seq[ChatCompletionMessageToolCall]): ChatMessage =
-  ChatMessage(
+  result = ChatMessage(
     role: ChatMessageRole.assistant,
     tool_calls: toolCalls
   )
 
 proc toolMessageText*(text, toolCallId: sink string; name: sink string = ""): ChatMessage =
-  ChatMessage(
+  result = ChatMessage(
     role: ChatMessageRole.tool,
     content: contentText(text),
     name: name,
@@ -95,10 +95,10 @@ proc toolMessageText*(text, toolCallId: sink string; name: sink string = ""): Ch
 
 proc toolMessageJson*[T](value: T; toolCallId: sink string;
     name: sink string = ""): ChatMessage =
-  result = toolMessageText(toJson(value), toolCallId, name)
+  toolMessageText(toJson(value), toolCallId, name)
 
 proc toolFunction*(name: sink string; description: sink string = ""): ChatTool =
-  ChatTool(
+  result = ChatTool(
     `type`: ChatToolType.function,
     function: FunctionDefinition(
       name: name,
@@ -109,7 +109,7 @@ proc toolFunction*(name: sink string; description: sink string = ""): ChatTool =
 
 proc toolFunction*(name: sink string; description: sink string;
     parameters: sink RawJson): ChatTool =
-  ChatTool(
+  result = ChatTool(
     `type`: ChatToolType.function,
     function: FunctionDefinition(
       name: name,
@@ -120,10 +120,10 @@ proc toolFunction*(name: sink string; description: sink string;
 
 proc toolFunction*[TSchema](name: sink string; description: sink string;
     parametersSchema: TSchema): ChatTool =
-  result = toolFunction(name, description, RawJson(toJson(parametersSchema)))
+  toolFunction(name, description, RawJson(toJson(parametersSchema)))
 
 proc toolFunction*[TSchema](name: sink string; parametersSchema: TSchema): ChatTool =
-  result = toolFunction(name, "", RawJson(toJson(parametersSchema)))
+  toolFunction(name, "", RawJson(toJson(parametersSchema)))
 
 let
   formatText* = ResponseFormat(`type`: ResponseFormatType.text)
@@ -132,7 +132,7 @@ let
 
 proc formatJsonSchema*(name: sink string; schema: sink RawJson;
     strict = true): ResponseFormat =
-  ResponseFormat(
+  result = ResponseFormat(
     `type`: ResponseFormatType.json_schema,
     json_schema: ResponseFormatJsonSchema(
       name: name,
@@ -143,7 +143,7 @@ proc formatJsonSchema*(name: sink string; schema: sink RawJson;
 
 proc formatJsonSchema*[TSchema](name: sink string; schema: TSchema;
     strict = true): ResponseFormat =
-  result = formatJsonSchema(name, RawJson(toJson(schema)), strict)
+  formatJsonSchema(name, RawJson(toJson(schema)), strict)
 
 proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     stream = false; temperature = 1.0; maxTokens = 0;
@@ -152,7 +152,7 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     tools: sink seq[ChatTool] = @[];
     toolChoice = ToolChoice.none;
     responseFormat = formatText): ChatCreateParams =
-  ChatCreateParams(
+  result = ChatCreateParams(
     model: model,
     messages: messages,
     stream: stream,
