@@ -16,8 +16,8 @@ type
 
 proc batchCreate*(inputFileId, endpoint: sink string;
     completionWindow = BatchCompletionWindow;
-    metadata: sink RawJson = RawJson("")): BatchCreateParams =
-  BatchCreateParams(
+    metadata: sink RawJson = RawJson("")): BatchCreateParams {.inline.} =
+  result = BatchCreateParams(
     input_file_id: inputFileId,
     endpoint: endpoint,
     completion_window: completionWindow,
@@ -25,25 +25,23 @@ proc batchCreate*(inputFileId, endpoint: sink string;
   )
 
 proc outputExpiresAfter*(seconds: int;
-    anchor: sink string = "created_at"): OutputExpiresAfter =
+    anchor: sink string = "created_at"): OutputExpiresAfter {.inline.} =
   OutputExpiresAfter(anchor: anchor, seconds: seconds)
 
 proc batchCreateRequest*(cfg: OpenAIConfig; params: BatchCreateParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  request(cfg, hvPost, cfg.url & BatchesPath, params,
-    requestId, timeoutMs, headers)
+  request(cfg, hvPost, cfg.url & BatchesPath, params, requestId, timeoutMs, headers)
 
 proc batchRetrieveRequest*(cfg: OpenAIConfig; batchId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  request(cfg, hvGet, cfg.url & BatchesPath & "/" & batchId,
-    requestId, timeoutMs, headers)
+  request(cfg, hvGet, cfg.url & BatchesPath & "/" & batchId, requestId, timeoutMs, headers)
 
 proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  var params: QueryParams
+  var params = emptyQueryParams()
   if after.len > 0:
     params["after"] = after
   if limit > 0:
@@ -54,8 +52,7 @@ proc batchListRequest*(cfg: OpenAIConfig; after = ""; limit = 0;
 proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
-  request(cfg, hvPost,
-    cfg.url & BatchesPath & "/" & batchId & "/cancel",
+  request(cfg, hvPost, cfg.url & BatchesPath & "/" & batchId & "/cancel",
     requestId, timeoutMs, headers)
 
 proc batchInputLine*(customId: sink string; body: sink RawJson;
@@ -97,7 +94,7 @@ proc statusOf*(x: Batch): BatchStatus {.inline.} =
   result = x.status
 
 proc isTerminal*(x: Batch): bool {.inline.} =
-  result = x.status in {completed, failed, expired, cancelled}
+  result = x.status in {BatchStatus.completed, failed, expired, cancelled}
 
 proc isFailed*(x: Batch): bool {.inline.} =
   result = x.status == BatchStatus.failed
@@ -153,8 +150,8 @@ proc outputFileId*(x: Batch): lent string {.inline.} =
 proc errorFileId*(x: Batch): lent string {.inline.} =
   result = x.error_file_id
 
-proc metadataOf*(x: Batch): string {.inline.} =
-  result = string(x.metadata)
+proc metadataOf*(x: Batch): lent RawJson {.inline.} =
+  result = x.metadata
 
 proc totalRequests*(x: Batch): int {.inline.} =
   result = x.request_counts.get(BatchRequestCounts()).total
@@ -188,8 +185,8 @@ proc outputStatusCode*(x: BatchOutputLine): int {.inline.} =
 proc outputRequestId*(x: BatchOutputLine): string {.inline.} =
   result = x.response.get(BatchOutputResponse()).request_id
 
-proc outputBody*(x: BatchOutputLine): string {.inline.} =
-  result = string(x.response.get(BatchOutputResponse()).body)
+proc outputBody*(x: BatchOutputLine): RawJson {.inline.} =
+  result = x.response.get(BatchOutputResponse()).body
 
 proc outputErrorCode*(x: BatchOutputLine): string {.inline.} =
   result = x.error.get(BatchOutputError()).code

@@ -170,13 +170,13 @@ proc testBatchParseAndAccessors() =
   doAssert not isExpired(parsed)
   doAssert not isCancelled(parsed)
   doAssert errorCount(parsed) == 0
-  doAssert metadataOf(parsed).contains("customer_id")
+  doAssert ($metadataOf(parsed)).contains("customer_id")
 
   var validating: Batch
   doAssert batchParse(ValidatingBatchResponse, validating)
   doAssert statusOf(validating) == BatchStatus.validating
   doAssert not isTerminal(validating)
-  doAssert metadataOf(validating) == ""
+  doAssert $metadataOf(validating) == ""
 
   var failed: Batch
   doAssert batchParse(FailedBatchResponse, failed)
@@ -207,8 +207,8 @@ proc testOutputLineParse() =
   doAssert ok.error.isNone
   doAssert outputStatusCode(ok) == 200
   doAssert outputRequestId(ok) == "req_123"
-  doAssert outputBody(ok).contains("chatcmpl-123")
-  doAssert outputBody(ok).contains("gpt-5.6-luna")
+  doAssert ($outputBody(ok)).contains("chatcmpl-123")
+  doAssert ($outputBody(ok)).contains("gpt-5.6-luna")
 
   var err: BatchOutputLine
   doAssert batchOutputLineParse(OutputLineError, err)
