@@ -147,7 +147,8 @@ proc formatJsonSchema*[TSchema](name: sink string; schema: TSchema;
 
 proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     stream = false; temperature = 1.0; maxTokens = 0;
-    maxCompletionTokens = 0; seed = none(int64); store = none(bool);
+    maxCompletionTokens = 0; reasoningEffort = none(ReasoningEffort);
+    seed = none(int64); store = none(bool);
     tools: sink seq[ChatTool] = @[];
     toolChoice = ToolChoice.none;
     responseFormat = formatText): ChatCreateParams =
@@ -158,6 +159,7 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     temperature: temperature,
     max_tokens: maxTokens,
     max_completion_tokens: maxCompletionTokens,
+    reasoning_effort: reasoningEffort,
     tools: tools,
     tool_choice: toolChoice,
     response_format: responseFormat,

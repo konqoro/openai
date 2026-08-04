@@ -24,6 +24,9 @@ type
   ToolChoice* = enum
     none, `auto`, required
 
+  ReasoningEffort* = enum
+    none, minimal, low, medium, high, xhigh, max
+
   ResponseFormatType* = enum
     text, json_object, json_schema, regex
 
@@ -134,6 +137,7 @@ type
     temperature*: float
     max_tokens*: int
     max_completion_tokens*: int
+    reasoning_effort*: Option[ReasoningEffort]
     tools*: seq[ChatTool]
     tool_choice*: ToolChoice
     response_format*: ResponseFormat
@@ -251,6 +255,8 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
     writeJsonField(s, "max_tokens", x.max_tokens)
   if x.max_completion_tokens != 0:
     writeJsonField(s, "max_completion_tokens", x.max_completion_tokens)
+  if x.reasoning_effort.isSome:
+    writeJsonField(s, "reasoning_effort", x.reasoning_effort.get)
   if x.tools.len > 0:
     writeJsonField(s, "tools", x.tools)
     if x.tool_choice == ToolChoice.required:

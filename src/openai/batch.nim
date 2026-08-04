@@ -97,10 +97,7 @@ proc statusOf*(x: Batch): BatchStatus {.inline.} =
   result = x.status
 
 proc isTerminal*(x: Batch): bool {.inline.} =
-  result = x.status in {
-    BatchStatus.completed, BatchStatus.failed, BatchStatus.expired,
-    BatchStatus.cancelled
-  }
+  result = x.status in {completed, failed, expired, cancelled}
 
 proc isFailed*(x: Batch): bool {.inline.} =
   result = x.status == BatchStatus.failed

@@ -303,6 +303,15 @@ proc testChatCreateMaxTokensSerialization() =
   )
   doAssert toJson(completionRequest).contains("\"max_completion_tokens\":128")
 
+  let noReasoningRequest = chatCreate(
+    model = "gpt-5.6-luna",
+    messages = @[userMessageText("ping")],
+    reasoningEffort = some(ReasoningEffort.none)
+  )
+  doAssert toJson(noReasoningRequest).contains(
+    "\"reasoning_effort\":\"none\"",
+  )
+
 proc testChatCreateSerializationFieldInclusionRules() =
   let request = chatCreate(
     model = "gpt-4.1-mini",
