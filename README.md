@@ -301,7 +301,8 @@ proc main() =
   )
   let line = batchInputLineJson(
     "request-1",
-    RawJson(toJson(params))
+    RawJson(toJson(params)),
+    url = "/v1/chat/completions"
   )
   echo line
 ```
@@ -376,7 +377,7 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
 - Batch helpers (from `openai/batch`):
   `batchCreate`, `batchCreateRequest`, `batchRetrieveRequest`,
   `batchListRequest`, `batchCancelRequest`, `batchParse`, `batchListParse`,
-  `batchInputLine`, `batchInputLineJson`, `batchOutputLineParse`,
+  `batchInputLine`, `batchInputLineJson`, `addBatchInputLine`, `batchOutputLineParse`,
   `statusOf`, `isTerminal`, `totalRequests`, `inputTokens`, `outputTokens`
 - File helpers (from `openai/files`):
   `fileUploadRequest`, `fileUploadAdd`, `fileRetrieveRequest`,
