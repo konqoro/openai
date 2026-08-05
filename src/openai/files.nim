@@ -30,7 +30,7 @@ proc fileUploadRequest*(cfg: OpenAIConfig; filename, purpose: string;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   var hs = cfg.withDefaultHeaders(headers)
   hs["Content-Type"] = "multipart/form-data; boundary=" & boundary
-  RequestSpec(
+  result = RequestSpec(
     verb: hvPost,
     url: cfg.url & FilesPath,
     headers: hs,

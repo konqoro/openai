@@ -56,13 +56,17 @@ proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string;
   request(cfg, hvPost, cfg.url & BatchesPath & "/" & batchId & "/cancel",
     requestId, timeoutMs, headers)
 
+proc batchInputLine*(customId: sink string; body: sink RawJson;
+    url: string): BatchInputLine =
+  BatchInputLine(custom_id: customId, url: url, body: body)
+
 proc addBatchInputLine*(s: Stream; customId: sink string;
     body: sink RawJson; url: string) =
-  writeJson(s, BatchInputLine(custom_id: customId, url: url, body: body))
+  writeJson(s, batchInputLine(customId, body, url))
   s.write('\n')
 
 proc batchInputLineJson*(customId: sink string; body: sink RawJson; url: string): string =
-  let s = streams.open("")
+  let s = streams.open(newStringOfCap(string(body).len + 200))
   addBatchInputLine(s, customId, body, url)
   result = move(s.s)
 

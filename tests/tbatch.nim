@@ -151,6 +151,12 @@ proc testInputLineJson() =
   doAssert parsed.url == "/v1/chat/completions"
   doAssert string(parsed.body).contains("gpt-5.6-luna")
 
+  let obj = batchInputLine("request-1",
+    RawJson("""{"model":"gpt-5.6-luna"}"""), "/v1/chat/completions")
+  doAssert obj.custom_id == "request-1"
+  doAssert obj.`method` == "POST"
+  doAssert obj.url == "/v1/chat/completions"
+
 proc testBatchParseAndAccessors() =
   var parsed: Batch
   doAssert batchParse(CompletedBatchResponse, parsed)
