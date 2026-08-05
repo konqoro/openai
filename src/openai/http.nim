@@ -1,6 +1,6 @@
 import relay
 import jsonx
-import ./core
+import ./config
 
 proc withDefaultHeaders*(cfg: OpenAIConfig;
     headers: sink HttpHeaders = emptyHttpHeaders()): HttpHeaders =

@@ -1,9 +1,9 @@
 import relay
 import jsonx
-import ./[core, http]
+import ./[config, http]
 import ./schema/embeddings_schema
 
-export core
+export config
 export embeddings_schema
 
 const EmbeddingsPath = "/embeddings"

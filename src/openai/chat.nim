@@ -1,9 +1,9 @@
 import relay
 import jsonx
-import ./[core, http]
+import ./[config, http]
 import ./schema/chat_schema
 
-export core
+export config
 export chat_schema
 
 const ChatCompletionsPath = "/chat/completions"

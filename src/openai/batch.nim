@@ -2,10 +2,10 @@ import std/strutils
 import relay
 import jsonx
 import jsonx/streams
-import ./[core, http]
+import ./[config, http]
 import ./schema/batch_schema
 
-export core
+export config
 export batch_schema
 
 const

@@ -1,10 +1,10 @@
 import std/strutils
 import relay
 import jsonx
-import ./[core, http]
+import ./[config, http]
 import ./schema/files_schema
 
-export core
+export config
 export files_schema
 
 const

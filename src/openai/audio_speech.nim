@@ -1,9 +1,9 @@
 import relay
 import jsonx
-import ./[core, http]
+import ./[config, http]
 import ./schema/audio_speech_schema
 
-export core
+export config
 export audio_speech_schema
 
 const AudioSpeechPath = "/audio/speech"
