@@ -1,6 +1,7 @@
 import std/strutils
 import relay
 import jsonx
+import jsonx/streams
 import openai/batch
 
 const CompletedBatchResponse = """{
@@ -132,10 +133,17 @@ proc testBatchRequestBuilders() =
 proc testInputLineJson() =
   let line = batchInputLineJson(
     "request-1",
-    RawJson("""{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}""")
+    RawJson("""{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}"""),
+    url = "/v1/chat/completions",
   )
   doAssert line ==
-    """{"custom_id":"request-1","method":"POST","url":"/v1/chat/completions","body":{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}}"""
+    """{"custom_id":"request-1","method":"POST","url":"/v1/chat/completions","body":{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}}""" & "\n"
+
+  var st = streams.open("")
+  addBatchInputLine(st, "request-1",
+    RawJson("""{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}"""),
+    "/v1/chat/completions")
+  doAssert move(st.s) == line
 
   let parsed = fromJson(line, BatchInputLine)
   doAssert parsed.custom_id == "request-1"

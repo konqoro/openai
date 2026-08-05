@@ -82,7 +82,7 @@ type
 
   BatchInputLine* = object
     custom_id*: string
-    `method`*: string
+    `method`*: string = "POST"
     url*: string
     body*: RawJson
 

@@ -1,6 +1,7 @@
 import std/strutils
 import relay
 import jsonx
+import jsonx/streams
 import ./[core, http]
 import ./schema/batch_schema
 
@@ -55,13 +56,15 @@ proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string;
   request(cfg, hvPost, cfg.url & BatchesPath & "/" & batchId & "/cancel",
     requestId, timeoutMs, headers)
 
-proc batchInputLine*(customId: sink string; body: sink RawJson;
-    verb = "POST"; url = "/v1/chat/completions"): BatchInputLine =
-  BatchInputLine(custom_id: customId, `method`: verb, url: url, body: body)
+proc addBatchInputLine*(s: Stream; customId: sink string;
+    body: sink RawJson; url: string) =
+  writeJson(s, BatchInputLine(custom_id: customId, url: url, body: body))
+  s.write('\n')
 
-proc batchInputLineJson*(customId: sink string; body: sink RawJson;
-    verb = "POST"; url = "/v1/chat/completions"): string =
-  toJson(batchInputLine(customId, body, verb, url))
+proc batchInputLineJson*(customId: sink string; body: sink RawJson; url: string): string =
+  let s = streams.open("")
+  addBatchInputLine(s, customId, body, url)
+  result = move(s.s)
 
 proc batchParse*(body: string; dst: var Batch): bool =
   try:
