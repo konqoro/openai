@@ -88,6 +88,53 @@ const JsonTextResponse = """{
   }
 }"""
 
+const ToolCallResponse = """{
+  "id": "chatcmpl_tc",
+  "object": "chat.completion",
+  "created": 1786007317,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_1",
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"q\":\"nim\"}"
+            }
+          }
+        ],
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 46,
+    "completion_tokens": 14,
+    "total_tokens": 60,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 10,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}"""
+
 type
   ParsedWeatherAnswer = object
     city: string
@@ -247,7 +294,6 @@ proc testInputConstructorsCoverage() =
   doAssert jsonSchemaFormat.json_schema.name == "output"
   doAssert string(jsonSchemaFormat.json_schema.schema) == """{"type":"object"}"""
   doAssert jsonSchemaFormat.json_schema.strict
-  doAssert formatRegex.`type` == ResponseFormatType.regex
 
 proc testChatCreateParamsBuilder() =
   let request = chatCreate(
@@ -608,6 +654,22 @@ proc testSeedAndStoreSerialization() =
   doAssert parsed.store.isSome
   doAssert not parsed.store.get
 
+proc testToolCallResponseWithNullContent() =
+  var parsed: ChatCreateResult
+  doAssert chatParse(ToolCallResponse, parsed)
+  doAssert parsed.`object` == "chat.completion"
+  doAssert parsed.service_tier == "default"
+  doAssert parsed.system_fingerprint.isNone
+  doAssert parsed.choices[0].message.content.kind == ChatCompletionAssistantContentKind.none
+  doAssert parsed.choices[0].message.refusal.isNone
+  doAssert parsed.choices[0].message.annotations.len == 0
+  doAssert parsed.usage.prompt_tokens_details.cached_tokens == 0
+  doAssert parsed.usage.prompt_tokens_details.cache_write_tokens == 0
+  doAssert parsed.usage.prompt_tokens_details.audio_tokens == 0
+  doAssert parsed.usage.completion_tokens_details.reasoning_tokens == 10
+  doAssert parsed.usage.completion_tokens_details.accepted_prediction_tokens == 0
+  doAssert parsed.usage.completion_tokens_details.rejected_prediction_tokens == 0
+
 when isMainModule:
   testInputConstructorsCoverage()
   testChatCreateParamsBuilder()
@@ -627,4 +689,5 @@ when isMainModule:
   testParseFirstTextJson()
   testParseFirstCallArgs()
   testSeedAndStoreSerialization()
+  testToolCallResponseWithNullContent()
   echo "all tests passed"

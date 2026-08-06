@@ -3,7 +3,6 @@ export options
 import jsonx
 import jsonx/streams
 
-{.define: jsonxLenient.}
 
 type
   BatchStatus* = enum

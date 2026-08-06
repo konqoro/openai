@@ -1,7 +1,6 @@
 import std/options
 import jsonx
 
-{.define: jsonxLenient.}
 
 type
   ApiError* = object

@@ -1,7 +1,6 @@
 import std/options
 export options
 
-{.define: jsonxLenient.}
 
 type
   FilePurpose* = enum

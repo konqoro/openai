@@ -3,7 +3,6 @@ export options
 import jsonx
 import jsonx/[parsejson, streams]
 
-{.define: jsonxLenient.}
 
 type
   ChatMessageRole* = enum

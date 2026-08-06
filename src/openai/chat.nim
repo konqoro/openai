@@ -128,7 +128,6 @@ proc toolFunction*[TSchema](name: sink string; parametersSchema: TSchema): ChatT
 let
   formatText* = ResponseFormat(`type`: ResponseFormatType.text)
   formatJsonObject* = ResponseFormat(`type`: ResponseFormatType.json_object)
-  formatRegex* = ResponseFormat(`type`: ResponseFormatType.regex)
 
 proc formatJsonSchema*(name: sink string; schema: sink RawJson;
     strict = true): ResponseFormat =
@@ -246,6 +245,8 @@ proc finish*(x: ChatCreateResult; i = 0): FinishReason {.inline.} =
 proc firstText*(x: ChatCreateResult; i = 0): lent string =
   ensureChoiceIndex(x.choices.len, i)
   case x.choices[i].message.content.kind
+  of ChatCompletionAssistantContentKind.none:
+    raiseAccessorValueError("choice index " & $i & " has no content")
   of ChatCompletionAssistantContentKind.text:
     result = x.choices[i].message.content.text
   of ChatCompletionAssistantContentKind.parts:
@@ -255,6 +256,8 @@ proc firstText*(x: ChatCreateResult; i = 0): lent string =
 proc firstText*(x: var ChatCreateResult; i = 0): var string =
   ensureChoiceIndex(x.choices.len, i)
   case x.choices[i].message.content.kind
+  of ChatCompletionAssistantContentKind.none:
+    raiseAccessorValueError("choice index " & $i & " has no content")
   of ChatCompletionAssistantContentKind.text:
     result = x.choices[i].message.content.text
   of ChatCompletionAssistantContentKind.parts:
