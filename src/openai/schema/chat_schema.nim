@@ -7,13 +7,13 @@ import jsonx/[parsejson, streams]
 
 type
   ChatMessageRole* = enum
-    system, user, assistant, tool
+    system, developer, user, assistant, tool
 
   ChatToolType* = enum
     function
 
   FinishReason* = enum
-    unknown, stop, length, tool_calls, content_filter, malformed_function_call
+    unknown, stop, length, tool_calls, content_filter
 
   ImageDetail* = enum
     `auto`, low, high
@@ -25,13 +25,13 @@ type
     none, `auto`, required
 
   ReasoningEffort* = enum
-    none, minimal, low, medium, high, xhigh, max
+    none, low, medium, high, xhigh
 
   ResponseFormatType* = enum
-    text, json_object, json_schema, regex
+    text, json_object, json_schema
 
   ChatCompletionAssistantContentKind* = enum
-    text, parts
+    none, text, parts
 
   ChatCompletionContentPartText* = object
     `type`*: ChatCompletionContentPartType
@@ -48,6 +48,8 @@ type
 
   ChatCompletionAssistantContent* = object
     case kind*: ChatCompletionAssistantContentKind
+    of none:
+      discard
     of text:
       text*: string
     of parts:
@@ -57,23 +59,41 @@ type
     role*: ChatMessageRole
     tool_calls*: seq[ChatCompletionMessageToolCall]
     content*: ChatCompletionAssistantContent
+    refusal*: Option[string]
+    annotations*: seq[RawJson]
 
   OpenAIChatCompletionChoice* = object
     index*: int
     message*: ChatCompletionAssistantMessage
     finish_reason*: FinishReason
 
+  PromptTokensDetails* = object
+    cached_tokens*: int
+    cache_write_tokens*: int
+    audio_tokens*: int
+
+  CompletionTokensDetails* = object
+    reasoning_tokens*: int
+    audio_tokens*: int
+    accepted_prediction_tokens*: int
+    rejected_prediction_tokens*: int
+
   UsageInfo* = object
     prompt_tokens*: int
     completion_tokens*: int
     total_tokens*: int
+    prompt_tokens_details*: PromptTokensDetails
+    completion_tokens_details*: CompletionTokensDetails
 
   OpenAIChatCompletionOut* = object
     id*: string
+    `object`*: string
     created*: int64
     model*: string
     choices*: seq[OpenAIChatCompletionChoice]
     usage*: UsageInfo
+    service_tier*: string
+    system_fingerprint*: Option[string]
 
   ChatCompletionInputContentKind* = enum
     text, parts
@@ -148,14 +168,18 @@ const
   EmptyFunctionParametersSchema* = RawJson("""{"type":"object","properties":{}}""")
 
 proc readJson*(dst: var ChatCompletionAssistantContent; p: var JsonParser) =
-  if p.tok == tkString:
+  case p.tok
+  of tkNull:
+    dst = ChatCompletionAssistantContent(kind: none)
+    discard getTok(p)
+  of tkString:
     dst = ChatCompletionAssistantContent(kind: text)
     readJson(dst.text, p)
-  elif p.tok == tkBracketLe:
+  of tkBracketLe:
     dst = ChatCompletionAssistantContent(kind: parts)
     readJson(dst.parts, p)
   else:
-    raiseParseErr(p, "string or array")
+    raiseParseErr(p, "string, array, or null")
 
 proc readJson*(dst: var ChatCompletionMessageContent; p: var JsonParser) =
   if p.tok == tkString:
@@ -169,6 +193,8 @@ proc readJson*(dst: var ChatCompletionMessageContent; p: var JsonParser) =
 
 proc writeJson*(s: Stream; x: ChatCompletionAssistantContent) =
   case x.kind
+  of none:
+    streams.write(s, "null")
   of text:
     writeJson(s, x.text)
   of parts:
