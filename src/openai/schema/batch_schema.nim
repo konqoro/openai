@@ -3,7 +3,6 @@ export options
 import jsonx
 import jsonx/streams
 
-
 type
   BatchStatus* = enum
     validating, failed, in_progress, finalizing, completed, expired,

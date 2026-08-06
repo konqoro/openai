@@ -1,7 +1,6 @@
 import std/options
 export options
 
-
 type
   FilePurpose* = enum
     assistants, assistants_output, batch, batch_output,

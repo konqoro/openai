@@ -3,7 +3,6 @@ export options
 import jsonx
 import jsonx/[parsejson, streams]
 
-
 type
   ChatMessageRole* = enum
     system, developer, user, assistant, tool
