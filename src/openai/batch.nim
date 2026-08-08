@@ -73,23 +73,26 @@ proc batchInputLineJson*(customId: sink string; body: sink RawJson; url: string)
   addBatchInputLine(s, customId, body, url)
   result = move(s.s)
 
-proc batchParse*(body: string; dst: var Batch): bool =
+proc batchParse*(body: string; dst: var Batch;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(body, Batch)
+    dst = fromJson(body, Batch, unknownFields = unknownFields)
     result = dst.id.len > 0
   except CatchableError:
     result = false
 
-proc batchListParse*(body: string; dst: var BatchList): bool =
+proc batchListParse*(body: string; dst: var BatchList;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(body, BatchList)
+    dst = fromJson(body, BatchList, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc batchOutputLineParse*(line: string; dst: var BatchOutputLine): bool =
+proc batchOutputLineParse*(line: string; dst: var BatchOutputLine;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(line, BatchOutputLine)
+    dst = fromJson(line, BatchOutputLine, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
@@ -227,7 +230,7 @@ proc reasoningTokens*(x: Batch): int {.inline.} =
 proc hasOutputResponse*(x: BatchOutputLine): bool {.inline.} =
   x.response.isSome
 
-proc outputResponseOf(x: BatchOutputLine): lent BatchOutputResponse {.inline.} =
+proc outputResponseOf*(x: BatchOutputLine): lent BatchOutputResponse {.inline.} =
   if x.response.isNone:
     raiseBatchAccessorError("batch output line has no response")
   result = x.response.get
@@ -235,7 +238,7 @@ proc outputResponseOf(x: BatchOutputLine): lent BatchOutputResponse {.inline.} =
 proc hasOutputError*(x: BatchOutputLine): bool {.inline.} =
   x.error.isSome
 
-proc outputErrorOf(x: BatchOutputLine): lent BatchOutputError {.inline.} =
+proc outputErrorOf*(x: BatchOutputLine): lent BatchOutputError {.inline.} =
   if x.error.isNone:
     raiseBatchAccessorError("batch output line has no error")
   result = x.error.get

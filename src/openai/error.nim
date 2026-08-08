@@ -30,30 +30,28 @@ template readObjectFields(p: var JsonParser; body: untyped) =
       raiseParseErr(p, "comma or closing brace")
   eat(p, tkCurlyRi)
 
-proc readJson*(dst: var OpenAIError; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "message": readJson(dst.message, p)
-    of "type": readJson(dst.`type`, p)
-    of "param": readJson(dst.param, p)
-    of "code": readJson(dst.code, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var OpenAIErrorResponse; p: var JsonParser) =
+proc readJson*(dst: var OpenAIErrorResponse; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
   var foundError = false
   readObjectFields(p):
     case fieldName
     of "error":
       foundError = true
-      readJson(dst.error, p)
-    else: skipJson(p)
+      readJson(dst.error, p, unknownFields)
+    else:
+      if unknownFields == ufSkip:
+        skipJson(p)
+      else:
+        raiseParseErr(p, "valid object field")
   if not foundError:
     raiseParseErr(p, "error field")
 
-proc errorParse*(body: string; dst: var OpenAIErrorResponse): bool =
-  ## Parses an error envelope, ignoring fields added by the API in the future.
+proc errorParse*(body: string; dst: var OpenAIErrorResponse;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+  ## Parses an error envelope using the selected unknown-field policy.
   try:
-    dst = fromJson(body, OpenAIErrorResponse)
+    dst = fromJson(body, OpenAIErrorResponse,
+      unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false

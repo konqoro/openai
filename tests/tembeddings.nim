@@ -1,3 +1,4 @@
+import std/strutils
 import relay
 import jsonx
 import openai/embeddings
@@ -126,6 +127,16 @@ proc testEmbeddingParseFailure() =
   var parsed: EmbeddingCreateResult
   doAssert not embeddingParse("{bad json", parsed)
 
+proc testUnknownFieldPolicy() =
+  let futureResponse = GoodResponse.replace(
+    "\"index\": 0,",
+    "\"index\": 0, \"future_embedding_field\": true,"
+  )
+  var parsed: EmbeddingCreateResult
+  doAssert embeddingParse(futureResponse, parsed)
+  doAssert not embeddingParse(futureResponse, parsed,
+    unknownFields = ufReject)
+
 when isMainModule:
   testEmbeddingRequest()
   testEmbeddingBatchAdd()
@@ -134,3 +145,4 @@ when isMainModule:
   testEmbeddingParseAndAccessors()
   testBase64EmbeddingParseAndAccessors()
   testEmbeddingParseFailure()
+  testUnknownFieldPolicy()

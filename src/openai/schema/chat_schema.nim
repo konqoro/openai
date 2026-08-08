@@ -182,27 +182,29 @@ const
   ChatToolChoiceNone* = RawJson("\"none\"")
   ChatToolChoiceRequired* = RawJson("\"required\"")
 
-proc readJson*(dst: var ChatCompletionAssistantContent; p: var JsonParser) =
+proc readJson*(dst: var ChatCompletionAssistantContent; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
   case p.tok
   of tkNull:
     dst = ChatCompletionAssistantContent(kind: none)
     discard getTok(p)
   of tkString:
     dst = ChatCompletionAssistantContent(kind: text)
-    readJson(dst.text, p)
+    readJson(dst.text, p, unknownFields)
   of tkBracketLe:
     dst = ChatCompletionAssistantContent(kind: parts)
-    readJson(dst.parts, p)
+    readJson(dst.parts, p, unknownFields)
   else:
     raiseParseErr(p, "string, array, or null")
 
-proc readJson*(dst: var ChatCompletionMessageContent; p: var JsonParser) =
+proc readJson*(dst: var ChatCompletionMessageContent; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
   if p.tok == tkString:
     dst = ChatCompletionMessageContent(kind: text)
-    readJson(dst.text, p)
+    readJson(dst.text, p, unknownFields)
   elif p.tok == tkBracketLe:
     dst = ChatCompletionMessageContent(kind: parts)
-    readJson(dst.parts, p)
+    readJson(dst.parts, p, unknownFields)
   else:
     raiseParseErr(p, "string or array")
 
@@ -329,100 +331,3 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
   if x.store:
     writeJsonField(s, "store", x.store)
   streams.write(s, "}")
-
-template readObjectFields(p: var JsonParser; body: untyped) =
-  eat(p, tkCurlyLe)
-  while p.tok != tkCurlyRi:
-    if p.tok != tkString:
-      raiseParseErr(p, "string literal as key")
-    let fieldName {.inject.} = p.a
-    discard getTok(p)
-    eat(p, tkColon)
-    body
-    if p.tok == tkComma:
-      discard getTok(p)
-    elif p.tok != tkCurlyRi:
-      raiseParseErr(p, "comma or closing brace")
-  eat(p, tkCurlyRi)
-
-proc readJson*(dst: var ChatCompletionContentPartText; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "type": readJson(dst.`type`, p)
-    of "text": readJson(dst.text, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ChatFunctionCall; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "name": readJson(dst.name, p)
-    of "arguments": readJson(dst.arguments, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ChatCompletionMessageToolCall; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "id": readJson(dst.id, p)
-    of "type": readJson(dst.`type`, p)
-    of "function": readJson(dst.function, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ChatCompletionAssistantMessage; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "role": readJson(dst.role, p)
-    of "tool_calls": readJson(dst.tool_calls, p)
-    of "content": readJson(dst.content, p)
-    of "refusal": readJson(dst.refusal, p)
-    of "annotations": readJson(dst.annotations, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var OpenAIChatCompletionChoice; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "index": readJson(dst.index, p)
-    of "message": readJson(dst.message, p)
-    of "finish_reason": readJson(dst.finish_reason, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ChatPromptTokensDetails; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "cached_tokens": readJson(dst.cached_tokens, p)
-    of "cache_write_tokens": readJson(dst.cache_write_tokens, p)
-    of "audio_tokens": readJson(dst.audio_tokens, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ChatCompletionTokensDetails; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "reasoning_tokens": readJson(dst.reasoning_tokens, p)
-    of "audio_tokens": readJson(dst.audio_tokens, p)
-    of "accepted_prediction_tokens":
-      readJson(dst.accepted_prediction_tokens, p)
-    of "rejected_prediction_tokens":
-      readJson(dst.rejected_prediction_tokens, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ChatUsage; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "prompt_tokens": readJson(dst.prompt_tokens, p)
-    of "completion_tokens": readJson(dst.completion_tokens, p)
-    of "total_tokens": readJson(dst.total_tokens, p)
-    of "prompt_tokens_details": readJson(dst.prompt_tokens_details, p)
-    of "completion_tokens_details": readJson(dst.completion_tokens_details, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var OpenAIChatCompletionOut; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "id": readJson(dst.id, p)
-    of "object": readJson(dst.`object`, p)
-    of "created": readJson(dst.created, p)
-    of "model": readJson(dst.model, p)
-    of "choices": readJson(dst.choices, p)
-    of "usage": readJson(dst.usage, p)
-    of "service_tier": readJson(dst.service_tier, p)
-    of "system_fingerprint": readJson(dst.system_fingerprint, p)
-    else: skipJson(p)

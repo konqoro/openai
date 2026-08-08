@@ -183,10 +183,12 @@ proc responseAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
   requestAdd(batch, cfg, hvPost, cfg.url & ResponsesPath, params,
     requestId, timeoutMs, headers)
 
-proc responseParse*(body: string; dst: var ResponseCreateResult): bool =
+proc responseParse*(body: string; dst: var ResponseCreateResult;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
   ## Parses a non-streaming Responses API result.
   try:
-    dst = fromJson(body, ResponseCreateResult)
+    dst = fromJson(body, ResponseCreateResult,
+      unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
@@ -230,10 +232,11 @@ proc firstText*(x: var ResponseCreateResult): var string =
         return x.output[itemIdx].content[partIdx].text
   raiseResponseAccessorError("response has no output text")
 
-proc parseFirstTextJson*[T](x: ResponseCreateResult; dst: var T): bool =
+proc parseFirstTextJson*[T](x: ResponseCreateResult; dst: var T;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
   ## Parses the first output text as `T`.
   try:
-    dst = fromJson(x.firstText(), T)
+    dst = fromJson(x.firstText(), T, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
@@ -295,10 +298,11 @@ proc firstCallArgs*(x: var ResponseCreateResult): var string =
       return x.output[i].arguments
   raiseResponseAccessorError("response has no function calls")
 
-proc parseFirstCallArgs*[T](x: ResponseCreateResult; dst: var T): bool =
+proc parseFirstCallArgs*[T](x: ResponseCreateResult; dst: var T;
+    unknownFields: UnknownFieldPolicy = ufSkip): bool =
   ## Parses the first function call's JSON arguments as `T`.
   try:
-    dst = fromJson(x.firstCallArgs(), T)
+    dst = fromJson(x.firstCallArgs(), T, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false

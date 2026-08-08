@@ -5,7 +5,7 @@
 import std/options
 export options
 import jsonx
-import jsonx/[parsejson, streams]
+import jsonx/streams
 
 type
   ResponseInputKind* = enum
@@ -290,61 +290,3 @@ proc writeJson*(s: Stream; x: OpenAIResponseIn) =
   if x.top_logprobs > 0: writeJsonField(s, "top_logprobs", x.top_logprobs)
   if x.top_p != 1.0: writeJsonField(s, "top_p", x.top_p)
   streams.write(s, "}")
-
-template readObjectFields(p: var JsonParser; body: untyped) =
-  eat(p, tkCurlyLe)
-  while p.tok != tkCurlyRi:
-    if p.tok != tkString:
-      raiseParseErr(p, "string literal as key")
-    let fieldName {.inject.} = p.a
-    discard getTok(p)
-    eat(p, tkColon)
-    body
-    if p.tok == tkComma:
-      discard getTok(p)
-    elif p.tok != tkCurlyRi:
-      raiseParseErr(p, "comma or closing brace")
-  eat(p, tkCurlyRi)
-
-proc readJson*(dst: var ResponseOutputContent; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "type": readJson(dst.`type`, p)
-    of "text": readJson(dst.text, p)
-    of "refusal": readJson(dst.refusal, p)
-    of "annotations": readJson(dst.annotations, p)
-    of "logprobs": readJson(dst.logprobs, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var ResponseOutputItem; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "id": readJson(dst.id, p)
-    of "type": readJson(dst.`type`, p)
-    of "status": readJson(dst.status, p)
-    of "role": readJson(dst.role, p)
-    of "content": readJson(dst.content, p)
-    of "call_id": readJson(dst.call_id, p)
-    of "name": readJson(dst.name, p)
-    of "arguments": readJson(dst.arguments, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var OpenAIResponseOut; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "id": readJson(dst.id, p)
-    of "object": readJson(dst.`object`, p)
-    of "created_at": readJson(dst.created_at, p)
-    of "completed_at": readJson(dst.completed_at, p)
-    of "background": readJson(dst.background, p)
-    of "status": readJson(dst.status, p)
-    of "error": readJson(dst.error, p)
-    of "incomplete_details": readJson(dst.incomplete_details, p)
-    of "model": readJson(dst.model, p)
-    of "output": readJson(dst.output, p)
-    of "previous_response_id": readJson(dst.previous_response_id, p)
-    of "service_tier": readJson(dst.service_tier, p)
-    of "usage": readJson(dst.usage, p)
-    of "metadata": readJson(dst.metadata, p)
-    of "reasoning": readJson(dst.reasoning, p)
-    else: skipJson(p)

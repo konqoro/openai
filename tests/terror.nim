@@ -1,3 +1,4 @@
+import jsonx
 import openai/error
 
 block parse_envelope:
@@ -17,3 +18,10 @@ block parse_absent_error_field:
 block parse_rejects_garbage:
   var parsed: OpenAIErrorResponse
   doAssert not errorParse("not json", parsed)
+
+block unknown_field_policy:
+  const FutureError =
+    """{"error":{"message":"bad","type":"server_error","future":true}}"""
+  var parsed: OpenAIErrorResponse
+  doAssert errorParse(FutureError, parsed)
+  doAssert not errorParse(FutureError, parsed, unknownFields = ufReject)

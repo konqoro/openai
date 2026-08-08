@@ -182,6 +182,18 @@ block parse_and_access:
   doAssert parseFirstCallArgs(parsed, args)
   doAssert args.q == "nim"
 
+  parsed.output[0].content[0].text = """{"answer":42,"future":true}"""
+  doAssert parseFirstTextJson(parsed, answer)
+  doAssert not parseFirstTextJson(parsed, answer, unknownFields = ufReject)
+  parsed.output[1].arguments = """{"q":"nim","future":true}"""
+  doAssert parseFirstCallArgs(parsed, args)
+  doAssert not parseFirstCallArgs(parsed, args, unknownFields = ufReject)
+
+block unknown_field_policy:
+  var parsed: ResponseCreateResult
+  doAssert responseParse(GoodResponse, parsed)
+  doAssert not responseParse(GoodResponse, parsed, unknownFields = ufReject)
+
 block parse_failure:
   var parsed: ResponseCreateResult
   doAssert not responseParse("{bad json", parsed)

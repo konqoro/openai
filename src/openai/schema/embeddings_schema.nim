@@ -84,13 +84,14 @@ proc writeJson*(s: Stream; x: OpenAIEmbeddingIn) =
     writeJsonField(s, "user", x.user)
   streams.write(s, "}")
 
-proc readJson*(dst: var EmbeddingContent; p: var JsonParser) =
+proc readJson*(dst: var EmbeddingContent; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
   if p.tok == tkString:
     dst = EmbeddingContent(kind: encoded)
-    readJson(dst.encoded, p)
+    readJson(dst.encoded, p, unknownFields)
   elif p.tok == tkBracketLe:
     dst = EmbeddingContent(kind: values)
-    readJson(dst.values, p)
+    readJson(dst.values, p, unknownFields)
   else:
     raiseParseErr(p, "string or array")
 
@@ -100,42 +101,3 @@ proc writeJson*(s: Stream; x: EmbeddingContent) =
     writeJson(s, x.values)
   of encoded:
     writeJson(s, x.encoded)
-
-template readObjectFields(p: var JsonParser; body: untyped) =
-  eat(p, tkCurlyLe)
-  while p.tok != tkCurlyRi:
-    if p.tok != tkString:
-      raiseParseErr(p, "string literal as key")
-    let fieldName {.inject.} = p.a
-    discard getTok(p)
-    eat(p, tkColon)
-    body
-    if p.tok == tkComma:
-      discard getTok(p)
-    elif p.tok != tkCurlyRi:
-      raiseParseErr(p, "comma or closing brace")
-  eat(p, tkCurlyRi)
-
-proc readJson*(dst: var EmbeddingData; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "object": readJson(dst.`object`, p)
-    of "index": readJson(dst.index, p)
-    of "embedding": readJson(dst.embedding, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var EmbeddingUsage; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "prompt_tokens": readJson(dst.prompt_tokens, p)
-    of "total_tokens": readJson(dst.total_tokens, p)
-    else: skipJson(p)
-
-proc readJson*(dst: var OpenAIEmbeddingOut; p: var JsonParser) =
-  readObjectFields(p):
-    case fieldName
-    of "object": readJson(dst.`object`, p)
-    of "data": readJson(dst.data, p)
-    of "model": readJson(dst.model, p)
-    of "usage": readJson(dst.usage, p)
-    else: skipJson(p)

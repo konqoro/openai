@@ -533,6 +533,7 @@ proc testChatParse() =
   doAssert decoded.choices[0].message.content.kind == ChatCompletionAssistantContentKind.text
   doAssert decoded.choices[0].message.content.text == "Hello"
   doAssert decoded.usage.total_tokens == 3
+  doAssert not chatParse(GoodResponse, decoded, unknownFields = ufReject)
 
   var bad: ChatCreateResult
   doAssert not chatParse("{", bad)
@@ -639,6 +640,12 @@ proc testParseFirstTextJson() =
   doAssert answer.condition == "light rain"
   doAssert answer.advice == "Wear a jacket."
 
+  parsed.choices[0].message.content.text =
+    """{"city":"Seattle","temperatureC":9.0,"condition":"rain","advice":"coat","future":true}"""
+  doAssert parseFirstTextJson(parsed, answer)
+  doAssert not parseFirstTextJson(parsed, answer,
+    unknownFields = ufReject)
+
   doAssert not parseFirstTextJson(parsed, answer, i = 1)
   doAssert not parseFirstTextJson(parsed, answer, i = 3)
 
@@ -653,6 +660,12 @@ proc testParseFirstCallArgs() =
   var args: ParsedToolArgs
   doAssert parseFirstCallArgs(parsed, args)
   doAssert args.q == "nim"
+
+  parsed.choices[0].message.tool_calls[0].function.arguments =
+    """{"q":"nim","future":true}"""
+  doAssert parseFirstCallArgs(parsed, args)
+  doAssert not parseFirstCallArgs(parsed, args,
+    unknownFields = ufReject)
 
   doAssert not parseFirstCallArgs(parsed, args, i = 3)
 
