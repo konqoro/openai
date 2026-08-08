@@ -5,7 +5,7 @@ import jsonx/[parsejson, streams]
 
 type
   BatchStatus* = enum
-    unknown, validating, failed, in_progress, finalizing, completed, expired,
+    validating, failed, in_progress, finalizing, completed, expired,
     cancelling, cancelled
 
   BatchRequestCounts* = object
@@ -132,20 +132,6 @@ template readObjectFields(p: var JsonParser; body: untyped) =
     elif p.tok != tkCurlyRi:
       raiseParseErr(p, "comma or closing brace")
   eat(p, tkCurlyRi)
-
-proc readJson*(dst: var BatchStatus; p: var JsonParser) =
-  var value: string
-  readJson(value, p)
-  case value
-  of "validating": dst = BatchStatus.validating
-  of "failed": dst = BatchStatus.failed
-  of "in_progress": dst = BatchStatus.in_progress
-  of "finalizing": dst = BatchStatus.finalizing
-  of "completed": dst = BatchStatus.completed
-  of "expired": dst = BatchStatus.expired
-  of "cancelling": dst = BatchStatus.cancelling
-  of "cancelled": dst = BatchStatus.cancelled
-  else: dst = BatchStatus.unknown
 
 proc readJson*(dst: var BatchRequestCounts; p: var JsonParser) =
   readObjectFields(p):

@@ -11,7 +11,7 @@ type
     function
 
   ChatFinishReason* = enum
-    unknown, stop, length, tool_calls, content_filter
+    stop, length, tool_calls, content_filter
 
   ChatImageDetail* = enum
     `auto`, low, high
@@ -376,16 +376,6 @@ proc readJson*(dst: var ChatCompletionAssistantMessage; p: var JsonParser) =
     of "refusal": readJson(dst.refusal, p)
     of "annotations": readJson(dst.annotations, p)
     else: skipJson(p)
-
-proc readJson*(dst: var ChatFinishReason; p: var JsonParser) =
-  var value: string
-  readJson(value, p)
-  case value
-  of "stop": dst = ChatFinishReason.stop
-  of "length": dst = ChatFinishReason.length
-  of "tool_calls": dst = ChatFinishReason.tool_calls
-  of "content_filter": dst = ChatFinishReason.content_filter
-  else: dst = ChatFinishReason.unknown
 
 proc readJson*(dst: var OpenAIChatCompletionChoice; p: var JsonParser) =
   readObjectFields(p):

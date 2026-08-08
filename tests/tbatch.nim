@@ -184,8 +184,8 @@ proc testBatchParseAndAccessors() =
   doAssert parsed.usage.get.output_tokens_details.reasoning_tokens == 0
   doAssert cachedInputTokens(parsed) == 960
   doAssert reasoningTokens(parsed) == 0
-  doAssert completedAt(parsed).get == 1711493163
-  doAssert failedAt(parsed).isNone
+  doAssert completedAt(parsed) == 1711493163
+  doAssert failedAt(parsed) == 0
   doAssert not isFailed(parsed)
   doAssert not isExpired(parsed)
   doAssert not isCancelled(parsed)
@@ -200,15 +200,17 @@ proc testBatchParseAndAccessors() =
   doAssert not hasMetadata(validating)
   doAssert not hasRequestCounts(validating)
   doAssert not hasUsage(validating)
+  doAssert totalRequests(validating) == 0
+  doAssert inputTokens(validating) == 0
+  doAssert totalTokens(validating) == 0
 
   var failed: Batch
   doAssert batchParse(FailedBatchResponse, failed)
   doAssert isFailed(failed)
-  doAssert failedAt(failed).get == 1711472133
+  doAssert failedAt(failed) == 1711472133
   doAssert errorCount(failed) == 1
   doAssert failed.errors.isSome
   doAssert failed.errors.get.data[0].code == "invalid_json"
-  doAssert hasLine(failed.errors.get.data[0])
   doAssert lineOf(failed.errors.get.data[0]) == 3
 
 proc testBatchParseFailure() =

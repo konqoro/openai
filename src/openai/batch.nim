@@ -118,29 +118,29 @@ proc isCancelled*(x: Batch): bool {.inline.} =
 proc createdAt*(x: Batch): int64 {.inline.} =
   result = int64(x.created_at)
 
-proc inProgressAt*(x: Batch): Option[int64] {.inline.} =
-  x.in_progress_at
+proc inProgressAt*(x: Batch): int64 {.inline.} =
+  result = x.in_progress_at.get(0)
 
-proc finalizingAt*(x: Batch): Option[int64] {.inline.} =
-  x.finalizing_at
+proc finalizingAt*(x: Batch): int64 {.inline.} =
+  result = x.finalizing_at.get(0)
 
-proc completedAt*(x: Batch): Option[int64] {.inline.} =
-  x.completed_at
+proc completedAt*(x: Batch): int64 {.inline.} =
+  result = x.completed_at.get(0)
 
-proc failedAt*(x: Batch): Option[int64] {.inline.} =
-  x.failed_at
+proc failedAt*(x: Batch): int64 {.inline.} =
+  result = x.failed_at.get(0)
 
-proc expiredAt*(x: Batch): Option[int64] {.inline.} =
-  x.expired_at
+proc expiredAt*(x: Batch): int64 {.inline.} =
+  result = x.expired_at.get(0)
 
-proc expiresAt*(x: Batch): Option[int64] {.inline.} =
-  x.expires_at
+proc expiresAt*(x: Batch): int64 {.inline.} =
+  result = x.expires_at.get(0)
 
-proc cancellingAt*(x: Batch): Option[int64] {.inline.} =
-  x.cancelling_at
+proc cancellingAt*(x: Batch): int64 {.inline.} =
+  result = x.cancelling_at.get(0)
 
-proc cancelledAt*(x: Batch): Option[int64] {.inline.} =
-  x.cancelled_at
+proc cancelledAt*(x: Batch): int64 {.inline.} =
+  result = x.cancelled_at.get(0)
 
 proc errorCount*(x: Batch): int {.inline.} =
   result = x.errors.get(BatchErrors()).data.len
@@ -148,13 +148,8 @@ proc errorCount*(x: Batch): int {.inline.} =
 proc raiseBatchAccessorError(message: string) {.noinline, noreturn.} =
   raise newException(ValueError, message)
 
-proc hasLine*(x: BatchError): bool {.inline.} =
-  x.line.isSome
-
-proc lineOf*(x: BatchError): int =
-  if x.line.isNone:
-    raiseBatchAccessorError("batch error has no input line")
-  result = x.line.get
+proc lineOf*(x: BatchError): int {.inline.} =
+  result = x.line.get(0)
 
 proc hasModel*(x: Batch): bool {.inline.} =
   x.model.isSome
@@ -194,42 +189,40 @@ proc metadataOf*(x: Batch): lent RawJson =
 proc hasRequestCounts*(x: Batch): bool {.inline.} =
   x.request_counts.isSome
 
-proc requestCountsOf(x: Batch): lent BatchRequestCounts {.inline.} =
-  if x.request_counts.isNone:
-    raiseBatchAccessorError("batch has no request counts")
-  result = x.request_counts.get
-
 proc totalRequests*(x: Batch): int {.inline.} =
-  result = x.requestCountsOf().total
+  if x.request_counts.isSome:
+    result = x.request_counts.get.total
 
 proc completedRequests*(x: Batch): int {.inline.} =
-  result = x.requestCountsOf().completed
+  if x.request_counts.isSome:
+    result = x.request_counts.get.completed
 
 proc failedRequests*(x: Batch): int {.inline.} =
-  result = x.requestCountsOf().failed
+  if x.request_counts.isSome:
+    result = x.request_counts.get.failed
 
 proc hasUsage*(x: Batch): bool {.inline.} =
   x.usage.isSome
 
-proc usageOf(x: Batch): lent BatchUsage {.inline.} =
-  if x.usage.isNone:
-    raiseBatchAccessorError("batch has no usage data")
-  result = x.usage.get
-
 proc inputTokens*(x: Batch): int {.inline.} =
-  result = x.usageOf().input_tokens
+  if x.usage.isSome:
+    result = x.usage.get.input_tokens
 
 proc outputTokens*(x: Batch): int {.inline.} =
-  result = x.usageOf().output_tokens
+  if x.usage.isSome:
+    result = x.usage.get.output_tokens
 
 proc totalTokens*(x: Batch): int {.inline.} =
-  result = x.usageOf().total_tokens
+  if x.usage.isSome:
+    result = x.usage.get.total_tokens
 
 proc cachedInputTokens*(x: Batch): int {.inline.} =
-  result = x.usageOf().input_tokens_details.cached_tokens
+  if x.usage.isSome:
+    result = x.usage.get.input_tokens_details.cached_tokens
 
 proc reasoningTokens*(x: Batch): int {.inline.} =
-  result = x.usageOf().output_tokens_details.reasoning_tokens
+  if x.usage.isSome:
+    result = x.usage.get.output_tokens_details.reasoning_tokens
 
 proc hasOutputResponse*(x: BatchOutputLine): bool {.inline.} =
   x.response.isSome
@@ -250,14 +243,14 @@ proc outputErrorOf(x: BatchOutputLine): lent BatchOutputError {.inline.} =
 proc outputStatusCode*(x: BatchOutputLine): int {.inline.} =
   result = x.outputResponseOf().status_code
 
-proc outputRequestId*(x: BatchOutputLine): string {.inline.} =
+proc outputRequestId*(x: BatchOutputLine): lent string {.inline.} =
   result = x.outputResponseOf().request_id
 
-proc outputBody*(x: BatchOutputLine): RawJson {.inline.} =
+proc outputBody*(x: BatchOutputLine): lent RawJson {.inline.} =
   result = x.outputResponseOf().body
 
-proc outputErrorCode*(x: BatchOutputLine): string {.inline.} =
+proc outputErrorCode*(x: BatchOutputLine): lent string {.inline.} =
   result = x.outputErrorOf().code
 
-proc outputErrorMessage*(x: BatchOutputLine): string {.inline.} =
+proc outputErrorMessage*(x: BatchOutputLine): lent string {.inline.} =
   result = x.outputErrorOf().message
