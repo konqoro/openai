@@ -13,16 +13,20 @@ const GoodResponse = """{
       "message": {
         "role": "assistant",
         "tool_calls": [],
-        "content": "Hello"
+        "content": "Hello",
+        "future_message_field": true
       },
-      "finish_reason": "stop"
+      "finish_reason": "stop",
+      "future_choice_field": []
     }
   ],
   "usage": {
     "prompt_tokens": 1,
     "completion_tokens": 2,
-    "total_tokens": 3
-  }
+    "total_tokens": 3,
+    "future_usage_field": {}
+  },
+  "future_response_field": "ignored"
 }"""
 
 const PartsResponse = """{
@@ -39,8 +43,10 @@ const PartsResponse = """{
             "type": "function",
             "function": {
               "name": "lookup",
-              "arguments": "{\"q\":\"nim\"}"
-            }
+              "arguments": "{\"q\":\"nim\"}",
+              "future_function_field": 1
+            },
+            "future_call_field": false
           }
         ],
         "content": [
@@ -128,8 +134,10 @@ const ToolCallResponse = """{
       "reasoning_tokens": 10,
       "audio_tokens": 0,
       "accepted_prediction_tokens": 0,
-      "rejected_prediction_tokens": 0
-    }
+      "rejected_prediction_tokens": 0,
+      "future_output_tokens_field": 0
+    },
+    "future_usage_field": null
   },
   "service_tier": "default",
   "system_fingerprint": null
@@ -157,11 +165,11 @@ proc sampleParams(streamValue = false): ChatCreateParams =
   chatCreate(
     model = "gpt-4.1-mini",
     stream = streamValue,
-    temperature = 0.2,
-    maxTokens = 64,
-    responseFormat = formatText,
+    temperature = some(0.2),
+    maxCompletionTokens = 64,
+    responseFormat = chatFormatText,
     messages = @[
-      userMessageText("ping")
+      chatUserMessageText("ping")
     ]
   )
 
@@ -201,47 +209,51 @@ proc testChatRequest() =
   doAssert payload.messages[0].content.text == "ping"
 
 proc testInputConstructorsCoverage() =
-  let pText = partText("plain")
+  let pText = chatPartText("plain")
   doAssert pText.`type` == ChatCompletionContentPartType.text
   doAssert pText.text == "plain"
 
-  let pImg = partImageUrl("https://example.com/a.png", detail = ImageDetail.high)
+  let pImg = chatPartImageUrl("https://example.com/a.png", detail = ChatImageDetail.high)
   doAssert pImg.`type` == ChatCompletionContentPartType.image_url
   doAssert pImg.image_url.url == "https://example.com/a.png"
-  doAssert pImg.image_url.detail == ImageDetail.high
+  doAssert pImg.image_url.detail == ChatImageDetail.high
 
-  let pAudio = partInputAudio("base64audio", InputAudioFormat.mp3)
+  let pAudio = chatPartInputAudio("base64audio", ChatInputAudioFormat.mp3)
   doAssert pAudio.`type` == ChatCompletionContentPartType.input_audio
   doAssert pAudio.input_audio.data == "base64audio"
-  doAssert pAudio.input_audio.format == InputAudioFormat.mp3
+  doAssert pAudio.input_audio.format == ChatInputAudioFormat.mp3
 
-  let cText = contentText("hello")
+  let cText = chatContentText("hello")
   doAssert cText.kind == ChatCompletionInputContentKind.text
   doAssert cText.text == "hello"
 
-  let cParts = contentParts(@[pText, pImg, pAudio])
+  let cParts = chatContentParts(@[pText, pImg, pAudio])
   doAssert cParts.kind == ChatCompletionInputContentKind.parts
   doAssert cParts.parts.len == 3
   doAssert cParts.parts[1].`type` == ChatCompletionContentPartType.image_url
 
-  let mSystem = systemMessageText("rules", name = "sys")
+  let mSystem = chatSystemMessageText("rules", name = "sys")
   doAssert mSystem.role == ChatMessageRole.system
   doAssert mSystem.content.kind == ChatCompletionInputContentKind.text
   doAssert mSystem.content.text == "rules"
   doAssert mSystem.name == "sys"
 
-  let mUserText = userMessageText("ask")
+  let mDeveloper = chatDeveloperMessageText("developer rules")
+  doAssert mDeveloper.role == ChatMessageRole.developer
+  doAssert mDeveloper.content.text == "developer rules"
+
+  let mUserText = chatUserMessageText("ask")
   doAssert mUserText.role == ChatMessageRole.user
   doAssert mUserText.content.kind == ChatCompletionInputContentKind.text
   doAssert mUserText.content.text == "ask"
 
-  let mUserParts = userMessageParts(@[pText, pImg], name = "u")
+  let mUserParts = chatUserMessageParts(@[pText, pImg], name = "u")
   doAssert mUserParts.role == ChatMessageRole.user
   doAssert mUserParts.content.kind == ChatCompletionInputContentKind.parts
   doAssert mUserParts.content.parts.len == 2
   doAssert mUserParts.name == "u"
 
-  let mAssistant = assistantMessageText("draft")
+  let mAssistant = chatAssistantMessageText("draft")
   doAssert mAssistant.role == ChatMessageRole.assistant
   doAssert mAssistant.content.kind == ChatCompletionInputContentKind.text
   doAssert mAssistant.content.text == "draft"
@@ -249,24 +261,24 @@ proc testInputConstructorsCoverage() =
   let toolCall = ChatCompletionMessageToolCall(
     id: "call_1",
     `type`: ChatToolType.function,
-    function: FunctionCall(
+    function: ChatFunctionCall(
       name: "lookup",
       arguments: "{\"q\":\"nim\"}"
     )
   )
-  let mAssistantCalls = assistantMessageToolCalls(@[toolCall])
+  let mAssistantCalls = chatAssistantMessageToolCalls(@[toolCall])
   doAssert mAssistantCalls.role == ChatMessageRole.assistant
   doAssert mAssistantCalls.tool_calls.len == 1
   doAssert mAssistantCalls.tool_calls[0].id == "call_1"
 
-  let mTool = toolMessageText("result-json", "call_99", name = "tool-name")
+  let mTool = chatToolMessageText("result-json", "call_99", name = "tool-name")
   doAssert mTool.role == ChatMessageRole.tool
   doAssert mTool.content.kind == ChatCompletionInputContentKind.text
   doAssert mTool.content.text == "result-json"
   doAssert mTool.tool_call_id == "call_99"
   doAssert mTool.name == "tool-name"
 
-  let mToolJson = toolMessageJson((city: "Berlin", celsius: 3.5), "call_100",
+  let mToolJson = chatToolMessageJson((city: "Berlin", celsius: 3.5), "call_100",
     name = "weather")
   doAssert mToolJson.role == ChatMessageRole.tool
   doAssert mToolJson.content.kind == ChatCompletionInputContentKind.text
@@ -274,57 +286,62 @@ proc testInputConstructorsCoverage() =
   doAssert mToolJson.tool_call_id == "call_100"
   doAssert mToolJson.name == "weather"
 
-  let tool = toolFunction("lookup", "search docs")
+  let tool = chatFunctionTool("lookup", "search docs")
   doAssert tool.`type` == ChatToolType.function
   doAssert tool.function.name == "lookup"
   doAssert tool.function.description == "search docs"
   doAssert string(tool.function.parameters) == string(EmptyFunctionParametersSchema)
+  doAssert tool.function.strict
 
   type
     ToolSchema = object
       `type`: string
 
-  let typedTool = toolFunction("typed", ToolSchema(`type`: "object"))
+  let typedTool = chatFunctionTool("typed", ToolSchema(`type`: "object"))
   doAssert string(typedTool.function.parameters) == """{"type":"object"}"""
 
-  doAssert formatText.`type` == ResponseFormatType.text
-  doAssert formatJsonObject.`type` == ResponseFormatType.json_object
-  let jsonSchemaFormat = formatJsonSchema("output", RawJson("""{"type":"object"}"""))
-  doAssert jsonSchemaFormat.`type` == ResponseFormatType.json_schema
+  doAssert chatFormatText.`type` == ChatResponseFormatType.text
+  doAssert chatFormatJsonObject.`type` == ChatResponseFormatType.json_object
+  let jsonSchemaFormat = chatFormatJsonSchema(
+    "output",
+    RawJson("""{"type":"object"}"""),
+    description = "Output data"
+  )
+  doAssert jsonSchemaFormat.`type` == ChatResponseFormatType.json_schema
   doAssert jsonSchemaFormat.json_schema.name == "output"
+  doAssert jsonSchemaFormat.json_schema.description == "Output data"
   doAssert string(jsonSchemaFormat.json_schema.schema) == """{"type":"object"}"""
   doAssert jsonSchemaFormat.json_schema.strict
 
 proc testChatCreateParamsBuilder() =
   let request = chatCreate(
     model = "gpt-4.1",
-    messages = @[systemMessageText("sys"), userMessageParts(@[partText("what?")])],
+    messages = @[chatSystemMessageText("sys"), chatUserMessageParts(@[chatPartText("what?")])],
     stream = true,
-    temperature = 0.75,
-    maxTokens = 321,
-    tools = @[toolFunction("calc", "math")],
-    toolChoice = ToolChoice.required,
-    responseFormat = formatJsonObject
+    temperature = some(0.75),
+    maxCompletionTokens = 321,
+    tools = @[chatFunctionTool("calc", "math")],
+    toolChoice = ChatToolChoiceRequired,
+    responseFormat = chatFormatJsonObject
   )
 
   doAssert request.model == "gpt-4.1"
   doAssert request.messages.len == 2
   doAssert request.messages[1].content.kind == ChatCompletionInputContentKind.parts
   doAssert request.stream
-  doAssert request.temperature == 0.75
-  doAssert request.max_tokens == 321
+  doAssert request.temperature == some(0.75)
+  doAssert request.max_completion_tokens == 321
   doAssert request.tools.len == 1
   doAssert request.tools[0].function.name == "calc"
-  doAssert request.tool_choice == ToolChoice.required
-  doAssert request.response_format.`type` == ResponseFormatType.json_object
+  doAssert string(request.tool_choice) == string(ChatToolChoiceRequired)
+  doAssert request.response_format.`type` == ChatResponseFormatType.json_object
 
-proc testChatCreateMaxTokensSerialization() =
+proc testChatCreateMaxCompletionTokensSerialization() =
   let defaultRequest = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")]
+    messages = @[chatUserMessageText("ping")]
   )
   let defaultJson = toJson(defaultRequest)
-  doAssert not defaultJson.contains("\"max_tokens\":")
   doAssert not defaultJson.contains("\"max_completion_tokens\":")
   doAssert not defaultJson.contains("\"stream\":")
   doAssert not defaultJson.contains("\"temperature\":")
@@ -336,44 +353,53 @@ proc testChatCreateMaxTokensSerialization() =
 
   let explicitRequest = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")],
-    maxTokens = 64
+    messages = @[chatUserMessageText("ping")],
+    maxCompletionTokens = 64
   )
   let explicitJson = toJson(explicitRequest)
-  doAssert explicitJson.contains("\"max_tokens\":64")
+  doAssert explicitJson.contains("\"max_completion_tokens\":64")
 
   let completionRequest = chatCreate(
     model = "gpt-5.6-luna",
-    messages = @[userMessageText("ping")],
+    messages = @[chatUserMessageText("ping")],
     maxCompletionTokens = 128
   )
   doAssert toJson(completionRequest).contains("\"max_completion_tokens\":128")
 
   let noReasoningRequest = chatCreate(
     model = "gpt-5.6-luna",
-    messages = @[userMessageText("ping")],
-    reasoningEffort = some(ReasoningEffort.none)
+    messages = @[chatUserMessageText("ping")],
+    reasoningEffort = some(ChatReasoningEffort.none)
   )
   doAssert toJson(noReasoningRequest).contains(
     "\"reasoning_effort\":\"none\"",
+  )
+
+  let maxReasoningRequest = chatCreate(
+    model = "gpt-5.6-sol",
+    messages = @[chatUserMessageText("ping")],
+    reasoningEffort = some(ChatReasoningEffort.max)
+  )
+  doAssert toJson(maxReasoningRequest).contains(
+    "\"reasoning_effort\":\"max\""
   )
 
 proc testChatCreateSerializationFieldInclusionRules() =
   let request = chatCreate(
     model = "gpt-4.1-mini",
     messages = @[
-      userMessageText("ping", name = "alice"),
-      toolMessageText("result", "call_1")
+      chatUserMessageText("ping", name = "alice"),
+      chatToolMessageText("result", "call_1")
     ],
     stream = true,
-    temperature = 0.2,
-    maxTokens = 64,
+    temperature = some(0.2),
+    maxCompletionTokens = 64,
     tools = @[
-      toolFunction("lookup", "search docs"),
-      toolFunction("extract")
+      chatFunctionTool("lookup", "search docs"),
+      chatFunctionTool("extract")
     ],
-    toolChoice = ToolChoice.required,
-    responseFormat = formatJsonObject
+    toolChoice = ChatToolChoiceRequired,
+    responseFormat = chatFormatJsonObject
   )
   let json = toJson(request)
   doAssert json.contains("\"stream\":true")
@@ -382,22 +408,25 @@ proc testChatCreateSerializationFieldInclusionRules() =
   doAssert json.contains("\"response_format\":{\"type\":\"json_object\"}")
   doAssert json.contains("\"name\":\"alice\"")
   doAssert json.contains("\"tool_call_id\":\"call_1\"")
-  doAssert json.contains("\"name\":\"lookup\",\"description\":\"search docs\",\"parameters\":{\"type\":\"object\",\"properties\":{}}")
+  doAssert json.contains(
+    """"name":"lookup","description":"search docs","parameters":""" &
+      """{"type":"object","properties":{}},"strict":true"""
+  )
   doAssert not json.contains("\"name\":\"extract\",\"description\":")
 
   let noToolsRequest = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")],
-    toolChoice = ToolChoice.required
+    messages = @[chatUserMessageText("ping")],
+    toolChoice = ChatToolChoiceRequired
   )
   let noToolsJson = toJson(noToolsRequest)
   doAssert not noToolsJson.contains("\"tools\":")
-  doAssert not noToolsJson.contains("\"tool_choice\":")
+  doAssert noToolsJson.contains("\"tool_choice\":\"required\"")
 
   let toolsDefaultChoiceRequest = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")],
-    tools = @[toolFunction("lookup")]
+    messages = @[chatUserMessageText("ping")],
+    tools = @[chatFunctionTool("lookup")]
   )
   let toolsDefaultChoiceJson = toJson(toolsDefaultChoiceRequest)
   doAssert toolsDefaultChoiceJson.contains("\"tools\":[")
@@ -405,19 +434,23 @@ proc testChatCreateSerializationFieldInclusionRules() =
 
   let toolsAutoChoiceRequest = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")],
-    tools = @[toolFunction("lookup")],
-    toolChoice = ToolChoice.auto
+    messages = @[chatUserMessageText("ping")],
+    tools = @[chatFunctionTool("lookup")],
+    toolChoice = ChatToolChoiceAuto
   )
   let toolsAutoChoiceJson = toJson(toolsAutoChoiceRequest)
   doAssert toolsAutoChoiceJson.contains("\"tools\":[")
-  doAssert not toolsAutoChoiceJson.contains("\"tool_choice\":")
+  doAssert toolsAutoChoiceJson.contains("\"tool_choice\":\"auto\"")
+
+  let namedChoice = chatToolChoiceFunction("lookup")
+  doAssert string(namedChoice) ==
+    """{"type":"function","function":{"name":"lookup"}}"""
 
 proc testAssistantToolCallMessageSerialization() =
   let toolCall = ChatCompletionMessageToolCall(
     id: "call_1",
     `type`: ChatToolType.function,
-    function: FunctionCall(
+    function: ChatFunctionCall(
       name: "lookup",
       arguments: "{\"q\":\"nim\"}"
     )
@@ -426,9 +459,9 @@ proc testAssistantToolCallMessageSerialization() =
   let toolCallOnlyRequest = chatCreate(
     model = "gpt-4.1-mini",
     messages = @[
-      assistantMessageToolCalls(@[toolCall])
+      chatAssistantMessageToolCalls(@[toolCall])
     ],
-    tools = @[toolFunction("lookup")]
+    tools = @[chatFunctionTool("lookup")]
   )
   let toolCallOnlyJson = toJson(toolCallOnlyRequest)
   doAssert toolCallOnlyJson.contains("\"tool_calls\":[{")
@@ -439,11 +472,11 @@ proc testAssistantToolCallMessageSerialization() =
     messages = @[
       ChatMessage(
         role: ChatMessageRole.assistant,
-        content: contentText("Looking this up"),
+        content: chatContentText("Looking this up"),
         tool_calls: @[toolCall]
       )
     ],
-    tools = @[toolFunction("lookup")]
+    tools = @[chatFunctionTool("lookup")]
   )
   let toolCallWithContentJson = toJson(toolCallWithContentRequest)
   doAssert toolCallWithContentJson.contains("\"tool_calls\":[{")
@@ -453,14 +486,14 @@ proc testSerializationRoundTripForBuiltRequest() =
   let request = chatCreate(
     model = "gpt-4.1-mini",
     messages = @[
-      userMessageParts(@[
-        partText("describe"),
-        partImageUrl("https://example.com/1.jpg", detail = ImageDetail.low),
-        partInputAudio("ZGF0YQ==", InputAudioFormat.wav)
+      chatUserMessageParts(@[
+        chatPartText("describe"),
+        chatPartImageUrl("https://example.com/1.jpg", detail = ChatImageDetail.low),
+        chatPartInputAudio("ZGF0YQ==", ChatInputAudioFormat.wav)
       ])
     ],
-    maxTokens = 128,
-    responseFormat = formatText
+    maxCompletionTokens = 128,
+    responseFormat = chatFormatText
   )
   let serialized = toJson(request)
   let parsed = fromJson(serialized, ChatCreateParams)
@@ -468,7 +501,7 @@ proc testSerializationRoundTripForBuiltRequest() =
   doAssert parsed.messages.len == 1
   doAssert parsed.messages[0].content.kind == ChatCompletionInputContentKind.parts
   doAssert parsed.messages[0].content.parts.len == 3
-  doAssert parsed.messages[0].content.parts[1].image_url.detail == ImageDetail.low
+  doAssert parsed.messages[0].content.parts[1].image_url.detail == ChatImageDetail.low
 
 proc testStreamingFlagPassesThrough() =
   let cfg = sampleConfig()
@@ -511,14 +544,16 @@ proc testResponseGettersWithTextContent() =
   doAssert createdAt(parsed) == 1711652795
   doAssert modelOf(parsed) == "gpt-4.1-mini"
   doAssert choices(parsed) == 1
-  doAssert finish(parsed) == FinishReason.stop
+  doAssert finish(parsed) == ChatFinishReason.stop
   doAssert firstText(parsed) == "Hello"
   doAssert allTextParts(parsed).len == 0
-  doAssert promptTokens(parsed) == 1
-  doAssert completionTokens(parsed) == 2
+  doAssert inputTokens(parsed) == 1
+  doAssert outputTokens(parsed) == 2
+  doAssert cachedInputTokens(parsed) == 0
+  doAssert reasoningTokens(parsed) == 0
   doAssert totalTokens(parsed) == 3
-  doAssert calls(parsed).len == 0
-  doAssert not hasToolCalls(parsed)
+  doAssert functionCalls(parsed).len == 0
+  doAssert not hasFunctionCalls(parsed)
   expectValueError(firstCallId(parsed))
   expectValueError(firstCallName(parsed))
   expectValueError(firstCallArgs(parsed))
@@ -526,11 +561,11 @@ proc testResponseGettersWithTextContent() =
 proc testResponseGettersWithPartsAndToolCalls() =
   var parsed: ChatCreateResult
   doAssert chatParse(PartsResponse, parsed)
-  doAssert finish(parsed) == FinishReason.tool_calls
+  doAssert finish(parsed) == ChatFinishReason.tool_calls
   doAssert firstText(parsed) == "first"
   doAssert allTextParts(parsed) == @["first", "second"]
-  doAssert calls(parsed).len == 1
-  doAssert hasToolCalls(parsed)
+  doAssert functionCalls(parsed).len == 1
+  doAssert hasFunctionCalls(parsed)
   doAssert firstCallId(parsed) == "call_1"
   doAssert firstCallName(parsed) == "lookup"
   doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
@@ -540,8 +575,8 @@ proc testResponseAccessorsRaiseOnMissingChoice() =
   doAssert idOf(empty) == ""
   doAssert modelOf(empty) == ""
   doAssert choices(empty) == 0
-  doAssert promptTokens(empty) == 0
-  doAssert completionTokens(empty) == 0
+  doAssert inputTokens(empty) == 0
+  doAssert outputTokens(empty) == 0
   doAssert totalTokens(empty) == 0
 
   expectValueError(finish(empty))
@@ -549,9 +584,9 @@ proc testResponseAccessorsRaiseOnMissingChoice() =
   expectValueError(firstText(empty))
   expectValueError(firstText(empty, i = 2))
   expectValueError(allTextParts(empty))
-  expectValueError(calls(empty))
-  expectValueError(hasToolCalls(empty))
-  expectValueError(hasToolCalls(empty, i = 2))
+  expectValueError(functionCalls(empty))
+  expectValueError(hasFunctionCalls(empty))
+  expectValueError(hasFunctionCalls(empty, i = 2))
   expectValueError(firstCallId(empty))
   expectValueError(firstCallName(empty))
   expectValueError(firstCallArgs(empty))
@@ -560,17 +595,17 @@ proc testVarCallsAccessor() =
   var parsed: ChatCreateResult
   doAssert chatParse(PartsResponse, parsed)
 
-  calls(parsed).add(ChatCompletionMessageToolCall(
+  functionCalls(parsed).add(ChatCompletionMessageToolCall(
     id: "call_2",
     `type`: ChatToolType.function,
-    function: FunctionCall(
+    function: ChatFunctionCall(
       name: "other",
       arguments: "{}"
     )
   ))
 
-  doAssert hasToolCalls(parsed)
-  doAssert calls(parsed).len == 2
+  doAssert hasFunctionCalls(parsed)
+  doAssert functionCalls(parsed).len == 2
   doAssert firstCallId(parsed) == "call_1"
   doAssert firstCallName(parsed) == "lookup"
   doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
@@ -629,28 +664,45 @@ proc testParseFirstCallArgs() =
   doAssert chatParse(GoodResponse, noCalls)
   doAssert not parseFirstCallArgs(noCalls, args)
 
-proc testSeedAndStoreSerialization() =
+proc testStoreAndCurrentFieldsSerialization() =
   let defaultRequest = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")]
+    messages = @[chatUserMessageText("ping")]
   )
   let defaultJson = toJson(defaultRequest)
-  doAssert not defaultJson.contains("\"seed\":")
   doAssert not defaultJson.contains("\"store\":")
+  doAssert not defaultJson.contains("\"parallel_tool_calls\":")
+  doAssert not defaultJson.contains("\"prompt_cache_key\":")
 
   let request = chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[userMessageText("ping")],
-    seed = some(42'i64),
+    messages = @[chatUserMessageText("ping")],
+    parallelToolCalls = some(false),
+    metadata = RawJson("""{"suite":"chat"}"""),
+    promptCacheKey = "cache-key",
+    promptCacheOptions = ChatPromptCacheOptions(mode: "explicit", ttl: "30m"),
+    safetyIdentifier = "hashed-user",
+    serviceTier = "priority",
     store = some(false)
   )
   let json = toJson(request)
-  doAssert json.contains("\"seed\":42")
+  doAssert json.contains("\"parallel_tool_calls\":false")
+  doAssert json.contains(""""metadata":{"suite":"chat"}""")
+  doAssert json.contains("\"prompt_cache_key\":\"cache-key\"")
+  doAssert json.contains(
+    """"prompt_cache_options":{"mode":"explicit","ttl":"30m"}"""
+  )
+  doAssert json.contains("\"safety_identifier\":\"hashed-user\"")
+  doAssert json.contains("\"service_tier\":\"priority\"")
   doAssert json.contains("\"store\":false")
+  doAssert not json.contains("\"max_tokens\":")
+  doAssert not json.contains("\"seed\":")
+  doAssert not json.contains("\"prompt_cache_retention\":")
 
   let parsed = fromJson(json, ChatCreateParams)
-  doAssert parsed.seed.isSome
-  doAssert parsed.seed.get == 42'i64
+  doAssert parsed.parallel_tool_calls == some(false)
+  doAssert parsed.prompt_cache_key == "cache-key"
+  doAssert parsed.prompt_cache_options.ttl == "30m"
   doAssert parsed.store.isSome
   doAssert not parsed.store.get
 
@@ -673,7 +725,7 @@ proc testToolCallResponseWithNullContent() =
 when isMainModule:
   testInputConstructorsCoverage()
   testChatCreateParamsBuilder()
-  testChatCreateMaxTokensSerialization()
+  testChatCreateMaxCompletionTokensSerialization()
   testChatCreateSerializationFieldInclusionRules()
   testAssistantToolCallMessageSerialization()
   testSerializationRoundTripForBuiltRequest()
@@ -688,6 +740,6 @@ when isMainModule:
   testVarStringAccessors()
   testParseFirstTextJson()
   testParseFirstCallArgs()
-  testSeedAndStoreSerialization()
+  testStoreAndCurrentFieldsSerialization()
   testToolCallResponseWithNullContent()
   echo "all tests passed"

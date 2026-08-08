@@ -89,7 +89,7 @@ proc fileDeleteRequest*(cfg: OpenAIConfig; fileId: string;
 proc fileParse*(body: string; dst: var FileObject): bool =
   try:
     dst = fromJson(body, FileObject)
-    result = true
+    result = dst.id.len > 0
   except CatchableError:
     result = false
 

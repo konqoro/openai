@@ -73,7 +73,7 @@ proc main() =
   if apiKey.len == 0:
     quit("Set DEEPINFRA_API_KEY before running this example.")
 
-  let weatherTool = toolFunction(
+  let weatherTool = chatFunctionTool(
     "get_weather",
     "Look up current weather for a city.",
     WeatherToolSchema(
@@ -83,7 +83,7 @@ proc main() =
       additionalProperties: false
     )
   )
-  let weatherAnswerFormat = formatJsonSchema(
+  let weatherAnswerFormat = chatFormatJsonSchema(
     "weather_answer",
     WeatherAnswerSchema(
       `type`: "object",
@@ -109,14 +109,16 @@ proc main() =
   var params = chatCreate(
     model = "Qwen/Qwen3-235B-A22B-Instruct-2507",
     messages = @[
-      systemMessageText("You are concise. Use the weather tool before answering weather questions."),
-      userMessageText("What is the weather in Seattle today and what should I wear?")
+      chatSystemMessageText(
+        "You are concise. Use the weather tool before answering weather questions."
+      ),
+      chatUserMessageText("What is the weather in Seattle today and what should I wear?")
     ],
-    temperature = 0.0,
-    maxTokens = 128,
+    temperature = some(0.0),
+    maxCompletionTokens = 128,
     tools = @[weatherTool],
-    toolChoice = ToolChoice.required,
-    responseFormat = formatText
+    toolChoice = ChatToolChoiceRequired,
+    responseFormat = chatFormatText
   )
 
   # Run local tool code with model-provided arguments.
@@ -130,13 +132,13 @@ proc main() =
     "\n  Result:      ", toJson(toolResult)
 
   # Turn 2: continue the same conversation with tool call + tool result.
-  params.messages.add(assistantMessageToolCalls(calls(firstTurn)))
-  params.messages.add(toolMessageJson(
+  params.messages.add(chatAssistantMessageToolCalls(functionCalls(firstTurn)))
+  params.messages.add(chatToolMessageJson(
     toolResult,
     firstCallId(firstTurn),
     name = firstCallName(firstTurn)
   ))
-  params.tool_choice = ToolChoice.none
+  params.tool_choice = ChatToolChoiceNone
   params.response_format = weatherAnswerFormat
 
   let secondTurn = requestChat(client, endpoint, params, requestId = 2)

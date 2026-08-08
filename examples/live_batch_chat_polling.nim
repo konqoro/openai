@@ -15,11 +15,11 @@ const
 proc buildParams(prompt: string): ChatCreateParams =
   chatCreate(
     model = ModelName,
-    messages = @[userMessageText(prompt)],
-    temperature = 0.0,
-    maxTokens = 48,
-    toolChoice = ToolChoice.none,
-    responseFormat = formatText
+    messages = @[chatUserMessageText(prompt)],
+    temperature = some(0.0),
+    maxCompletionTokens = 48,
+    toolChoice = ChatToolChoiceNone,
+    responseFormat = chatFormatText
   )
 
 proc printCompletion(item: RequestResult) =

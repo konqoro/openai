@@ -19,15 +19,15 @@ proc buildOcrParams(imageDataUrl: string): ChatCreateParams =
   chatCreate(
     model = ModelName,
     messages = @[
-      userMessageParts(@[
-        partText(OcrInstruction),
-        partImageUrl(imageDataUrl)
+      chatUserMessageParts(@[
+        chatPartText(OcrInstruction),
+        chatPartImageUrl(imageDataUrl)
       ])
     ],
-    temperature = 0.0,
-    maxTokens = 256,
-    toolChoice = ToolChoice.none,
-    responseFormat = formatText
+    temperature = some(0.0),
+    maxCompletionTokens = 256,
+    toolChoice = ChatToolChoiceNone,
+    responseFormat = chatFormatText
   )
 
 proc shouldRetry(item: RequestResult; attempt: int; maxAttempts: int): bool =

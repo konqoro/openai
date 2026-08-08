@@ -1,0 +1,176 @@
+import std/[assertions, strutils]
+import relay
+import jsonx
+import openai/responses
+
+const GoodResponse = """{
+  "id": "resp_1",
+  "object": "response",
+  "created_at": 1786200000,
+  "completed_at": 1786200001,
+  "background": false,
+  "status": "completed",
+  "error": null,
+  "incomplete_details": null,
+  "model": "gpt-5.6-luna",
+  "output": [
+    {
+      "id": "msg_1",
+      "type": "message",
+      "status": "completed",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"answer\":42}",
+          "annotations": [],
+          "logprobs": [],
+          "future_content_field": true
+        }
+      ]
+    },
+    {
+      "id": "fc_1",
+      "type": "function_call",
+      "status": "completed",
+      "call_id": "call_1",
+      "name": "lookup",
+      "arguments": "{\"q\":\"nim\"}",
+      "future_item_field": {}
+    }
+  ],
+  "previous_response_id": null,
+  "service_tier": "default",
+  "usage": {
+    "input_tokens": 20,
+    "input_tokens_details": {"cached_tokens": 5, "cache_write_tokens": 2},
+    "output_tokens": 9,
+    "output_tokens_details": {"reasoning_tokens": 3},
+    "total_tokens": 29
+  },
+  "metadata": {},
+  "reasoning": {"effort":"low"},
+  "truncation": "disabled",
+  "user": null,
+  "future_response_field": "ignored"
+}"""
+
+type
+  Answer = object
+    answer: int
+
+  CallArgs = object
+    q: string
+
+proc sampleConfig(): OpenAIConfig =
+  OpenAIConfig(apiKey: "sk-test")
+
+block simple_text_request:
+  let params = responseCreate(
+    model = "gpt-5.6-luna",
+    input = responseInputText("Hello"),
+    instructions = "Be concise.",
+    maxOutputTokens = 128,
+    reasoning = ResponseReasoning(effort: some(ResponseReasoningEffort.low)),
+    store = some(false)
+  )
+  let body = toJson(params)
+  doAssert body ==
+    """{"model":"gpt-5.6-luna","input":"Hello","instructions":"Be concise.",""" &
+    """"max_output_tokens":128,"reasoning":{"effort":"low"},"store":false}"""
+  doAssert not body.contains("prompt_cache_retention")
+  doAssert not body.contains("truncation")
+  doAssert not body.contains("\"user\"")
+
+block message_parts_and_tools:
+  let message = responseMessageParts(ResponseInputRole.user, @[
+    responsePartText("What is shown?"),
+    responsePartImageUrl("https://example.com/image.png", detail = "high"),
+    responsePartFileId("file_1")
+  ])
+  let tool = responseFunctionTool(
+    "lookup",
+    "Look up a value",
+    RawJson("""{"type":"object","properties":{"q":{"type":"string"}}}""")
+  )
+  let params = responseCreate(
+    "gpt-5.6-luna",
+    responseInputItems(@[message]),
+    tools = @[tool],
+    toolChoice = ResponseToolChoiceRequired,
+    text = ResponseTextConfig(format: responseFormatJsonSchema(
+      "answer", RawJson("""{"type":"object"}""")
+    ))
+  )
+  let body = toJson(params)
+  doAssert body.contains("\"type\":\"input_text\"")
+  doAssert body.contains("\"type\":\"input_image\"")
+  doAssert body.contains("\"type\":\"input_file\"")
+  doAssert body.contains("\"tool_choice\":\"required\"")
+  doAssert body.contains("\"type\":\"json_schema\"")
+  doAssert string(responseToolChoiceFunction("lookup")) ==
+    """{"type":"function","name":"lookup"}"""
+
+block function_outputs:
+  doAssert string(responseFunctionOutput("call_1", "done")) ==
+    """{"type":"function_call_output","call_id":"call_1","output":"done"}"""
+  doAssert string(responseFunctionOutputJson("call_1", Answer(answer: 42))) ==
+    """{"type":"function_call_output","call_id":"call_1","output":"{\"answer\":42}"}"""
+
+block request_and_batch:
+  let cfg = sampleConfig()
+  let params = responseCreate("gpt-5.6-luna", responseInputText("Hi"))
+  let req = responseRequest(cfg, params, requestId = 12, timeoutMs = 3000)
+  doAssert req.verb == hvPost
+  doAssert req.url == OpenAIBaseUrl & "/responses"
+  doAssert req.requestId == 12
+  doAssert req.timeoutMs == 3000
+  var batch: RequestBatch
+  responseAdd(batch, cfg, params, requestId = 13)
+  doAssert batch.len == 1
+  doAssert batch[0].url == OpenAIBaseUrl & "/responses"
+
+block parse_and_access:
+  var parsed: ResponseCreateResult
+  doAssert responseParse(GoodResponse, parsed)
+  doAssert idOf(parsed) == "resp_1"
+  doAssert modelOf(parsed) == "gpt-5.6-luna"
+  doAssert createdAt(parsed) == 1786200000.0
+  doAssert outputItems(parsed) == 2
+  doAssert firstText(parsed) == "{\"answer\":42}"
+  doAssert allTextParts(parsed) == @["{\"answer\":42}"]
+  doAssert firstCallId(parsed) == "call_1"
+  doAssert firstCallName(parsed) == "lookup"
+  doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
+  doAssert functionCalls(parsed).len == 1
+  doAssert hasFunctionCalls(parsed)
+  doAssert hasUsage(parsed)
+  doAssert inputTokens(parsed) == 20
+  doAssert cachedInputTokens(parsed) == 5
+  doAssert outputTokens(parsed) == 9
+  doAssert reasoningTokens(parsed) == 3
+  doAssert totalTokens(parsed) == 29
+  var answer: Answer
+  doAssert parseFirstTextJson(parsed, answer)
+  doAssert answer.answer == 42
+  var args: CallArgs
+  doAssert parseFirstCallArgs(parsed, args)
+  doAssert args.q == "nim"
+
+block parse_failure:
+  var parsed: ResponseCreateResult
+  doAssert not responseParse("{bad json", parsed)
+
+block missing_accessors:
+  var parsed: ResponseCreateResult
+  doAssert responseParse(
+    """{"id":"r","object":"response","created_at":1,"status":"in_progress",""" &
+      """"model":"m","output":[],"usage":null}""",
+    parsed
+  )
+  doAssertRaises ValueError:
+    discard firstText(parsed)
+  doAssertRaises ValueError:
+    discard firstCallId(parsed)
+  doAssertRaises ValueError:
+    discard inputTokens(parsed)

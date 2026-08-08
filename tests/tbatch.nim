@@ -204,6 +204,7 @@ proc testBatchParseAndAccessors() =
 proc testBatchParseFailure() =
   var parsed: Batch
   doAssert not batchParse("{bad json", parsed)
+  doAssert not batchParse("{}", parsed)
 
 proc testBatchListParse() =
   var parsed: BatchList
