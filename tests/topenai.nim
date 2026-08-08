@@ -165,7 +165,7 @@ proc sampleParams(streamValue = false): ChatCreateParams =
   chatCreate(
     model = "gpt-4.1-mini",
     stream = streamValue,
-    temperature = some(0.2),
+    temperature = 0.2,
     maxCompletionTokens = 64,
     responseFormat = chatFormatText,
     messages = @[
@@ -318,7 +318,7 @@ proc testChatCreateParamsBuilder() =
     model = "gpt-4.1",
     messages = @[chatSystemMessageText("sys"), chatUserMessageParts(@[chatPartText("what?")])],
     stream = true,
-    temperature = some(0.75),
+    temperature = 0.75,
     maxCompletionTokens = 321,
     tools = @[chatFunctionTool("calc", "math")],
     toolChoice = ChatToolChoiceRequired,
@@ -329,7 +329,7 @@ proc testChatCreateParamsBuilder() =
   doAssert request.messages.len == 2
   doAssert request.messages[1].content.kind == ChatCompletionInputContentKind.parts
   doAssert request.stream
-  doAssert request.temperature == some(0.75)
+  doAssert request.temperature == 0.75
   doAssert request.max_completion_tokens == 321
   doAssert request.tools.len == 1
   doAssert request.tools[0].function.name == "calc"
@@ -369,7 +369,7 @@ proc testChatCreateMaxCompletionTokensSerialization() =
   let noReasoningRequest = chatCreate(
     model = "gpt-5.6-luna",
     messages = @[chatUserMessageText("ping")],
-    reasoningEffort = some(ChatReasoningEffort.none)
+    reasoningEffort = ChatReasoningEffort.none
   )
   doAssert toJson(noReasoningRequest).contains(
     "\"reasoning_effort\":\"none\"",
@@ -378,7 +378,7 @@ proc testChatCreateMaxCompletionTokensSerialization() =
   let maxReasoningRequest = chatCreate(
     model = "gpt-5.6-sol",
     messages = @[chatUserMessageText("ping")],
-    reasoningEffort = some(ChatReasoningEffort.max)
+    reasoningEffort = ChatReasoningEffort.max
   )
   doAssert toJson(maxReasoningRequest).contains(
     "\"reasoning_effort\":\"max\""
@@ -392,7 +392,7 @@ proc testChatCreateSerializationFieldInclusionRules() =
       chatToolMessageText("result", "call_1")
     ],
     stream = true,
-    temperature = some(0.2),
+    temperature = 0.2,
     maxCompletionTokens = 64,
     tools = @[
       chatFunctionTool("lookup", "search docs"),
@@ -677,13 +677,13 @@ proc testStoreAndCurrentFieldsSerialization() =
   let request = chatCreate(
     model = "gpt-4.1-mini",
     messages = @[chatUserMessageText("ping")],
-    parallelToolCalls = some(false),
+    parallelToolCalls = false,
     metadata = RawJson("""{"suite":"chat"}"""),
     promptCacheKey = "cache-key",
     promptCacheOptions = ChatPromptCacheOptions(mode: "explicit", ttl: "30m"),
     safetyIdentifier = "hashed-user",
     serviceTier = "priority",
-    store = some(false)
+    store = true
   )
   let json = toJson(request)
   doAssert json.contains("\"parallel_tool_calls\":false")
@@ -694,17 +694,16 @@ proc testStoreAndCurrentFieldsSerialization() =
   )
   doAssert json.contains("\"safety_identifier\":\"hashed-user\"")
   doAssert json.contains("\"service_tier\":\"priority\"")
-  doAssert json.contains("\"store\":false")
+  doAssert json.contains("\"store\":true")
   doAssert not json.contains("\"max_tokens\":")
   doAssert not json.contains("\"seed\":")
   doAssert not json.contains("\"prompt_cache_retention\":")
 
   let parsed = fromJson(json, ChatCreateParams)
-  doAssert parsed.parallel_tool_calls == some(false)
+  doAssert not parsed.parallel_tool_calls
   doAssert parsed.prompt_cache_key == "cache-key"
   doAssert parsed.prompt_cache_options.ttl == "30m"
-  doAssert parsed.store.isSome
-  doAssert not parsed.store.get
+  doAssert parsed.store
 
 proc testToolCallResponseWithNullContent() =
   var parsed: ChatCreateResult

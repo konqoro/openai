@@ -114,7 +114,7 @@ proc main() =
       ),
       chatUserMessageText("What is the weather in Seattle today and what should I wear?")
     ],
-    temperature = some(0.0),
+    temperature = 0.0,
     maxCompletionTokens = 128,
     tools = @[weatherTool],
     toolChoice = ChatToolChoiceRequired,

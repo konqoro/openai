@@ -1,21 +1,33 @@
+## JSON-mapped request types for the OpenAI Speech API.
+
 import jsonx
 import jsonx/streams
 
 type
-  AudioSpeechServiceTier* = enum
-    `default`, priority
+  SpeechVoiceKind* = enum
+    named, custom
 
-  AudioSpeechResponseFormat* = enum
-    mp3, opus, flac, wav, pcm
+  SpeechVoice* = object
+    case kind*: SpeechVoiceKind
+    of named:
+      name*: string
+    of custom:
+      id*: string
 
-  OpenAIAudioSpeechIn* = object
-    service_tier*: AudioSpeechServiceTier
+  SpeechResponseFormat* = enum
+    mp3, opus, aac, flac, wav, pcm
+
+  SpeechStreamFormat* = enum
+    audio, sse
+
+  OpenAISpeechIn* = object
     model*: string
     input*: string
-    voice*: string
-    response_format*: AudioSpeechResponseFormat
+    voice*: SpeechVoice
+    instructions*: string
+    response_format*: SpeechResponseFormat
     speed*: float
-    extra_body*: RawJson
+    stream_format*: SpeechStreamFormat
 
 template writeJsonField(s: Stream; name: string; value: untyped) =
   if comma: streams.write(s, ",")
@@ -24,19 +36,27 @@ template writeJsonField(s: Stream; name: string; value: untyped) =
   streams.write(s, ":")
   writeJson(s, value)
 
-proc writeJson*(s: Stream; x: OpenAIAudioSpeechIn) =
+proc writeJson*(s: Stream; x: SpeechVoice) =
+  case x.kind
+  of SpeechVoiceKind.named:
+    writeJson(s, x.name)
+  of SpeechVoiceKind.custom:
+    streams.write(s, "{\"id\":")
+    writeJson(s, x.id)
+    streams.write(s, "}")
+
+proc writeJson*(s: Stream; x: OpenAISpeechIn) =
   var comma = false
   streams.write(s, "{")
-  if x.service_tier != AudioSpeechServiceTier.`default`:
-    writeJsonField(s, "service_tier", x.service_tier)
   writeJsonField(s, "model", x.model)
   writeJsonField(s, "input", x.input)
-  if x.voice.len > 0:
-    writeJsonField(s, "voice", x.voice)
-  if x.response_format != AudioSpeechResponseFormat.wav:
+  writeJsonField(s, "voice", x.voice)
+  if x.instructions.len > 0:
+    writeJsonField(s, "instructions", x.instructions)
+  if x.response_format != SpeechResponseFormat.mp3:
     writeJsonField(s, "response_format", x.response_format)
   if x.speed != 1.0:
     writeJsonField(s, "speed", x.speed)
-  if string(x.extra_body).len > 0:
-    writeJsonField(s, "extra_body", x.extra_body)
+  if x.stream_format != SpeechStreamFormat.audio:
+    writeJsonField(s, "stream_format", x.stream_format)
   streams.write(s, "}")

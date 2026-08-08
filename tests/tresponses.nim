@@ -65,14 +65,39 @@ type
 proc sampleConfig(): OpenAIConfig =
   OpenAIConfig(apiKey: "sk-test")
 
+block request_scalar_defaults:
+  let defaults = responseCreate("gpt-5.6-luna", responseInputText("Hello"))
+  doAssert defaults.parallel_tool_calls
+  doAssert defaults.store
+  doAssert defaults.temperature == 1.0
+  doAssert defaults.top_logprobs == 0
+  doAssert defaults.top_p == 1.0
+  let defaultBody = toJson(defaults)
+  doAssert not defaultBody.contains("\"parallel_tool_calls\":")
+  doAssert not defaultBody.contains("\"store\":")
+  doAssert not defaultBody.contains("\"temperature\":")
+  doAssert not defaultBody.contains("\"top_logprobs\":")
+  doAssert not defaultBody.contains("\"top_p\":")
+
+  let explicit = responseCreate("gpt-5.6-luna", responseInputText("Hello"),
+    background = true, parallelToolCalls = false, store = false,
+    temperature = 0.0, topLogprobs = 5, topP = 0.9)
+  let explicitBody = toJson(explicit)
+  doAssert explicitBody.contains("\"background\":true")
+  doAssert explicitBody.contains("\"parallel_tool_calls\":false")
+  doAssert explicitBody.contains("\"store\":false")
+  doAssert explicitBody.contains("\"temperature\":0.0")
+  doAssert explicitBody.contains("\"top_logprobs\":5")
+  doAssert explicitBody.contains("\"top_p\":0.9")
+
 block simple_text_request:
   let params = responseCreate(
     model = "gpt-5.6-luna",
     input = responseInputText("Hello"),
     instructions = "Be concise.",
     maxOutputTokens = 128,
-    reasoning = ResponseReasoning(effort: some(ResponseReasoningEffort.low)),
-    store = some(false)
+    reasoning = ResponseReasoning(effort: ResponseReasoningEffort.low),
+    store = false
   )
   let body = toJson(params)
   doAssert body ==

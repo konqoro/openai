@@ -102,8 +102,12 @@ proc testBatchCreate() =
   doAssert toJson(withMetadata) ==
     """{"input_file_id":"file-abc123","endpoint":"/v1/chat/completions","completion_window":"24h","metadata":{"run":"r1"}}"""
 
-  var withExpiry = withMetadata
-  withExpiry.output_expires_after = outputExpiresAfter(2592000)
+  let withExpiry = batchCreate(
+    inputFileId = "file-abc123",
+    endpoint = "/v1/chat/completions",
+    metadata = RawJson("""{"run":"r1"}"""),
+    outputExpiresAfter = batchOutputExpiresAfter(2592000)
+  )
   doAssert toJson(withExpiry) ==
     """{"input_file_id":"file-abc123","endpoint":"/v1/chat/completions","completion_window":"24h","metadata":{"run":"r1"},"output_expires_after":{"anchor":"created_at","seconds":2592000}}"""
 
@@ -163,9 +167,11 @@ proc testBatchParseAndAccessors() =
   doAssert idOf(parsed) == "batch_abc123"
   doAssert statusOf(parsed) == BatchStatus.completed
   doAssert isTerminal(parsed)
-  doAssert modelOf(parsed) == ""
+  doAssert not hasModel(parsed)
   doAssert inputFileId(parsed) == "file-abc123"
+  doAssert hasOutputFile(parsed)
   doAssert outputFileId(parsed) == "file-cvaTdG"
+  doAssert hasErrorFile(parsed)
   doAssert errorFileId(parsed) == "file-HOWS94"
   doAssert totalRequests(parsed) == 100
   doAssert completedRequests(parsed) == 95
@@ -177,28 +183,32 @@ proc testBatchParseAndAccessors() =
   doAssert parsed.usage.get.input_tokens_details.cached_tokens == 960
   doAssert parsed.usage.get.output_tokens_details.reasoning_tokens == 0
   doAssert cachedInputTokens(parsed) == 960
-  doAssert reasoningOutputTokens(parsed) == 0
-  doAssert completedAt(parsed) == 1711493163
-  doAssert failedAt(parsed) == 0
+  doAssert reasoningTokens(parsed) == 0
+  doAssert completedAt(parsed).get == 1711493163
+  doAssert failedAt(parsed).isNone
   doAssert not isFailed(parsed)
   doAssert not isExpired(parsed)
   doAssert not isCancelled(parsed)
   doAssert errorCount(parsed) == 0
+  doAssert hasMetadata(parsed)
   doAssert ($metadataOf(parsed)).contains("customer_id")
 
   var validating: Batch
   doAssert batchParse(ValidatingBatchResponse, validating)
   doAssert statusOf(validating) == BatchStatus.validating
   doAssert not isTerminal(validating)
-  doAssert $metadataOf(validating) == ""
+  doAssert not hasMetadata(validating)
+  doAssert not hasRequestCounts(validating)
+  doAssert not hasUsage(validating)
 
   var failed: Batch
   doAssert batchParse(FailedBatchResponse, failed)
   doAssert isFailed(failed)
-  doAssert failedAt(failed) == 1711472133
+  doAssert failedAt(failed).get == 1711472133
   doAssert errorCount(failed) == 1
   doAssert failed.errors.isSome
   doAssert failed.errors.get.data[0].code == "invalid_json"
+  doAssert hasLine(failed.errors.get.data[0])
   doAssert lineOf(failed.errors.get.data[0]) == 3
 
 proc testBatchParseFailure() =
@@ -220,6 +230,8 @@ proc testOutputLineParse() =
   doAssert ok.custom_id == "request-2"
   doAssert ok.response.isSome
   doAssert ok.error.isNone
+  doAssert hasOutputResponse(ok)
+  doAssert not hasOutputError(ok)
   doAssert outputStatusCode(ok) == 200
   doAssert outputRequestId(ok) == "req_123"
   doAssert ($outputBody(ok)).contains("chatcmpl-123")
@@ -230,6 +242,8 @@ proc testOutputLineParse() =
   doAssert err.custom_id == "request-3"
   doAssert err.response.isNone
   doAssert err.error.isSome
+  doAssert not hasOutputResponse(err)
+  doAssert hasOutputError(err)
   doAssert outputErrorCode(err) == "batch_expired"
   doAssert outputErrorMessage(err).contains("completion window")
 

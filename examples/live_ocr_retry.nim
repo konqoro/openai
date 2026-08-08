@@ -24,7 +24,7 @@ proc buildOcrParams(imageDataUrl: string): ChatCreateParams =
         chatPartImageUrl(imageDataUrl)
       ])
     ],
-    temperature = some(0.0),
+    temperature = 0.0,
     maxCompletionTokens = 256,
     toolChoice = ChatToolChoiceNone,
     responseFormat = chatFormatText

@@ -194,15 +194,16 @@ proc chatFormatJsonSchema*[TSchema](name: sink string; schema: TSchema;
   chatFormatJsonSchema(name, RawJson(toJson(schema)), description, strict)
 
 proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
-    stream = false; temperature = none(float);
-    maxCompletionTokens = 0; reasoningEffort = none(ChatReasoningEffort);
+    stream = false; temperature = 1.0;
+    maxCompletionTokens = 0;
+    reasoningEffort = ChatReasoningEffort.unspecified;
     tools: sink seq[ChatTool] = @[];
     toolChoice = RawJson(""); responseFormat = chatFormatText;
-    parallelToolCalls = none(bool); metadata: sink RawJson = RawJson("");
+    parallelToolCalls = true; metadata: sink RawJson = RawJson("");
     promptCacheKey: sink string = "";
     promptCacheOptions = ChatPromptCacheOptions();
     safetyIdentifier: sink string = ""; serviceTier: sink string = "";
-    store = none(bool)): ChatCreateParams =
+    store = false): ChatCreateParams =
   ## Creates Chat Completions parameters without deprecated request fields.
   result = ChatCreateParams(
     model: model,

@@ -145,10 +145,10 @@ proc responseCreate*(model: sink string; input: sink ResponseInput;
     instructions: sink string = ""; maxOutputTokens = 0;
     reasoning = ResponseReasoning(); text = ResponseTextConfig();
     tools: sink seq[RawJson] = @[]; toolChoice = RawJson("");
-    previousResponseId: sink string = ""; background = none(bool);
-    parallelToolCalls = none(bool); store = none(bool); stream = false;
-    temperature = none(float); topLogprobs = none(int);
-    topP = none(float)): ResponseCreateParams =
+    previousResponseId: sink string = ""; background = false;
+    parallelToolCalls = true; store = true; stream = false;
+    temperature = 1.0; topLogprobs = 0;
+    topP = 1.0): ResponseCreateParams =
   ## Creates parameters for `POST /responses` without deprecated fields.
   ResponseCreateParams(
     model: model,

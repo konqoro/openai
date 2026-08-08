@@ -49,10 +49,16 @@ type
     verbosity*: string
 
   ResponseReasoningEffort* = enum
-    none, low, medium, high, xhigh, max
+    unspecified = ""
+    none = "none"
+    low = "low"
+    medium = "medium"
+    high = "high"
+    xhigh = "xhigh"
+    max = "max"
 
   ResponseReasoning* = object
-    effort*: Option[ResponseReasoningEffort]
+    effort*: ResponseReasoningEffort
     summary*: string
     mode*: string
     context*: string
@@ -64,7 +70,7 @@ type
   OpenAIResponseIn* = object
     model*: string
     input*: ResponseInput
-    background*: Option[bool]
+    background*: bool
     context_management*: seq[RawJson]
     conversation*: string
     `include`*: seq[string]
@@ -73,7 +79,7 @@ type
     max_tool_calls*: int
     metadata*: RawJson
     moderation*: RawJson
-    parallel_tool_calls*: Option[bool]
+    parallel_tool_calls*: bool = true
     previous_response_id*: string
     prompt*: RawJson
     prompt_cache_key*: string
@@ -81,15 +87,15 @@ type
     reasoning*: ResponseReasoning
     safety_identifier*: string
     service_tier*: string
-    store*: Option[bool]
+    store*: bool = true
     stream*: bool
     stream_options*: RawJson
-    temperature*: Option[float]
+    temperature*: float = 1.0
     text*: ResponseTextConfig
     tool_choice*: RawJson
     tools*: seq[RawJson]
-    top_logprobs*: Option[int]
-    top_p*: Option[float]
+    top_logprobs*: int
+    top_p*: float = 1.0
 
   ResponseError* = object
     code*: string
@@ -217,8 +223,8 @@ proc writeJson*(s: Stream; x: ResponseTextConfig) =
 proc writeJson*(s: Stream; x: ResponseReasoning) =
   var comma = false
   streams.write(s, "{")
-  if x.effort.isSome:
-    writeJsonField(s, "effort", x.effort.get)
+  if x.effort != ResponseReasoningEffort.unspecified:
+    writeJsonField(s, "effort", x.effort)
   if x.summary.len > 0:
     writeJsonField(s, "summary", x.summary)
   if x.mode.len > 0:
@@ -240,7 +246,8 @@ proc hasPromptCacheOptions(x: ResponsePromptCacheOptions): bool {.inline.} =
   x.mode.len > 0 or x.ttl.len > 0
 
 proc hasReasoning(x: ResponseReasoning): bool {.inline.} =
-  x.effort.isSome or x.summary.len > 0 or x.mode.len > 0 or x.context.len > 0
+  x.effort != ResponseReasoningEffort.unspecified or x.summary.len > 0 or
+    x.mode.len > 0 or x.context.len > 0
 
 proc hasTextConfig(x: ResponseTextConfig): bool {.inline.} =
   x.format.`type` == ResponseTextFormatType.json_schema or x.verbosity.len > 0
@@ -250,7 +257,7 @@ proc writeJson*(s: Stream; x: OpenAIResponseIn) =
   streams.write(s, "{")
   writeJsonField(s, "model", x.model)
   writeJsonField(s, "input", x.input)
-  if x.background.isSome: writeJsonField(s, "background", x.background.get)
+  if x.background: writeJsonField(s, "background", x.background)
   if x.context_management.len > 0:
     writeJsonField(s, "context_management", x.context_management)
   if x.conversation.len > 0: writeJsonField(s, "conversation", x.conversation)
@@ -260,8 +267,8 @@ proc writeJson*(s: Stream; x: OpenAIResponseIn) =
   if x.max_tool_calls > 0: writeJsonField(s, "max_tool_calls", x.max_tool_calls)
   if string(x.metadata).len > 0: writeJsonField(s, "metadata", x.metadata)
   if string(x.moderation).len > 0: writeJsonField(s, "moderation", x.moderation)
-  if x.parallel_tool_calls.isSome:
-    writeJsonField(s, "parallel_tool_calls", x.parallel_tool_calls.get)
+  if not x.parallel_tool_calls:
+    writeJsonField(s, "parallel_tool_calls", x.parallel_tool_calls)
   if x.previous_response_id.len > 0:
     writeJsonField(s, "previous_response_id", x.previous_response_id)
   if string(x.prompt).len > 0: writeJsonField(s, "prompt", x.prompt)
@@ -272,16 +279,16 @@ proc writeJson*(s: Stream; x: OpenAIResponseIn) =
   if x.safety_identifier.len > 0:
     writeJsonField(s, "safety_identifier", x.safety_identifier)
   if x.service_tier.len > 0: writeJsonField(s, "service_tier", x.service_tier)
-  if x.store.isSome: writeJsonField(s, "store", x.store.get)
+  if not x.store: writeJsonField(s, "store", x.store)
   if x.stream: writeJsonField(s, "stream", x.stream)
   if string(x.stream_options).len > 0:
     writeJsonField(s, "stream_options", x.stream_options)
-  if x.temperature.isSome: writeJsonField(s, "temperature", x.temperature.get)
+  if x.temperature != 1.0: writeJsonField(s, "temperature", x.temperature)
   if x.text.hasTextConfig(): writeJsonField(s, "text", x.text)
   if string(x.tool_choice).len > 0: writeJsonField(s, "tool_choice", x.tool_choice)
   if x.tools.len > 0: writeJsonField(s, "tools", x.tools)
-  if x.top_logprobs.isSome: writeJsonField(s, "top_logprobs", x.top_logprobs.get)
-  if x.top_p.isSome: writeJsonField(s, "top_p", x.top_p.get)
+  if x.top_logprobs > 0: writeJsonField(s, "top_logprobs", x.top_logprobs)
+  if x.top_p != 1.0: writeJsonField(s, "top_p", x.top_p)
   streams.write(s, "}")
 
 template readObjectFields(p: var JsonParser; body: untyped) =

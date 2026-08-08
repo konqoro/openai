@@ -75,12 +75,22 @@ proc testEmbeddingRequest() =
   doAssert req.headers["Content-Type"] == "application/json"
   doAssert req.headers["X-Trace-Id"] == "trace-1"
   doAssert req.body ==
-    """{"model":"Qwen/Qwen3-Embedding-0.6B","input":"hello","encoding_format":"float"}"""
+    """{"model":"Qwen/Qwen3-Embedding-0.6B","input":"hello"}"""
 
 proc testEmbeddingEncodingFormatEnum() =
   let params = embeddingCreate("m", "text", EmbeddingEncodingFormat.base64)
   doAssert toJson(params) ==
     """{"model":"m","input":"text","encoding_format":"base64"}"""
+
+proc testEmbeddingInputKinds() =
+  doAssert toJson(embeddingCreate("m", embeddingInputTexts(@["one", "two"]),
+    dimensions = 256, user = "user-1")) ==
+    """{"model":"m","input":["one","two"],"dimensions":256,"user":"user-1"}"""
+  doAssert toJson(embeddingCreate("m", embeddingInputTokens(@[1, 2, 3]))) ==
+    """{"model":"m","input":[1,2,3]}"""
+  doAssert toJson(embeddingCreate("m",
+    embeddingInputTokenArrays(@[@[1, 2], @[3, 4]]))) ==
+    """{"model":"m","input":[[1,2],[3,4]]}"""
 
 proc testEmbeddingBatchAdd() =
   let cfg = sampleConfig()
@@ -95,9 +105,9 @@ proc testEmbeddingBatchAdd() =
 proc testEmbeddingParseAndAccessors() =
   var parsed: EmbeddingCreateResult
   doAssert embeddingParse(GoodResponse, parsed)
-  doAssert embeddings(parsed) == 1
+  doAssert outputItems(parsed) == 1
   doAssert modelOf(parsed) == "Qwen/Qwen3-Embedding-0.6B"
-  doAssert promptTokens(parsed) == 7
+  doAssert inputTokens(parsed) == 7
   doAssert totalTokens(parsed) == 7
   doAssert embedding(parsed).len == 3
   doAssert embedding(parsed)[1] == 0.2'f32
@@ -106,7 +116,7 @@ proc testEmbeddingParseAndAccessors() =
 proc testBase64EmbeddingParseAndAccessors() =
   var parsed: EmbeddingCreateResult
   doAssert embeddingParse(Base64Response, parsed)
-  doAssert embeddings(parsed) == 1
+  doAssert outputItems(parsed) == 1
   doAssert parsed.data[0].embedding.kind == EmbeddingContentKind.encoded
   doAssert embeddingBase64(parsed) == "AQID"
   expectValueError embedding(parsed)
@@ -120,6 +130,7 @@ when isMainModule:
   testEmbeddingRequest()
   testEmbeddingBatchAdd()
   testEmbeddingEncodingFormatEnum()
+  testEmbeddingInputKinds()
   testEmbeddingParseAndAccessors()
   testBase64EmbeddingParseAndAccessors()
   testEmbeddingParseFailure()

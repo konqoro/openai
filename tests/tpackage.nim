@@ -15,11 +15,12 @@ block package_entry:
   let upload = fileUploadRequest(cfg, "input.jsonl", "batch", "{}")
   doAssert upload.verb == hvPost
 
-  let speech = speechCreate("t", "hello")
+  let speech = speechCreate("t", "hello", "alloy")
   doAssert speech.model == "t"
 
   let emb = embeddingCreate("m", "text")
-  doAssert emb.input == "text"
+  doAssert emb.input.kind == EmbeddingInputKind.text
+  doAssert emb.input.text == "text"
 
   let response = responseCreate("m", responseInputText("hello"))
   doAssert response.model == "m"

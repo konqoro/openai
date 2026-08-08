@@ -20,6 +20,7 @@ type
     wav, mp3
 
   ChatReasoningEffort* = enum
+    unspecified = ""
     none = "none"
     minimal = "minimal"
     low = "low"
@@ -161,19 +162,19 @@ type
     model*: string
     messages*: seq[ChatMessage]
     stream*: bool
-    temperature*: Option[float]
+    temperature*: float = 1.0
     max_completion_tokens*: int
-    reasoning_effort*: Option[ChatReasoningEffort]
+    reasoning_effort*: ChatReasoningEffort
     tools*: seq[ChatTool]
     tool_choice*: RawJson
     response_format*: ChatResponseFormat
-    parallel_tool_calls*: Option[bool]
+    parallel_tool_calls*: bool = true
     metadata*: RawJson
     prompt_cache_key*: string
     prompt_cache_options*: ChatPromptCacheOptions
     safety_identifier*: string
     service_tier*: string
-    store*: Option[bool]
+    store*: bool
 
 const
   EmptyFunctionParametersSchema* = RawJson("""{"type":"object","properties":{}}""")
@@ -301,20 +302,20 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
   writeJsonField(s, "messages", x.messages)
   if x.stream:
     writeJsonField(s, "stream", x.stream)
-  if x.temperature.isSome:
-    writeJsonField(s, "temperature", x.temperature.get)
+  if x.temperature != 1.0:
+    writeJsonField(s, "temperature", x.temperature)
   if x.max_completion_tokens != 0:
     writeJsonField(s, "max_completion_tokens", x.max_completion_tokens)
-  if x.reasoning_effort.isSome:
-    writeJsonField(s, "reasoning_effort", x.reasoning_effort.get)
+  if x.reasoning_effort != ChatReasoningEffort.unspecified:
+    writeJsonField(s, "reasoning_effort", x.reasoning_effort)
   if x.tools.len > 0:
     writeJsonField(s, "tools", x.tools)
   if string(x.tool_choice).len > 0:
     writeJsonField(s, "tool_choice", x.tool_choice)
   if x.response_format.`type` != ChatResponseFormatType.text:
     writeJsonField(s, "response_format", x.response_format)
-  if x.parallel_tool_calls.isSome:
-    writeJsonField(s, "parallel_tool_calls", x.parallel_tool_calls.get)
+  if not x.parallel_tool_calls:
+    writeJsonField(s, "parallel_tool_calls", x.parallel_tool_calls)
   if string(x.metadata).len > 0:
     writeJsonField(s, "metadata", x.metadata)
   if x.prompt_cache_key.len > 0:
@@ -325,8 +326,8 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
     writeJsonField(s, "safety_identifier", x.safety_identifier)
   if x.service_tier.len > 0:
     writeJsonField(s, "service_tier", x.service_tier)
-  if x.store.isSome:
-    writeJsonField(s, "store", x.store.get)
+  if x.store:
+    writeJsonField(s, "store", x.store)
   streams.write(s, "}")
 
 template readObjectFields(p: var JsonParser; body: untyped) =
