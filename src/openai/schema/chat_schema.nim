@@ -377,7 +377,7 @@ proc readJson*(dst: var ChatCompletionAssistantMessage; p: var JsonParser) =
     of "annotations": readJson(dst.annotations, p)
     else: skipJson(p)
 
-proc readFinishReason(dst: var ChatFinishReason; p: var JsonParser) =
+proc readJson*(dst: var ChatFinishReason; p: var JsonParser) =
   var value: string
   readJson(value, p)
   case value
@@ -392,7 +392,7 @@ proc readJson*(dst: var OpenAIChatCompletionChoice; p: var JsonParser) =
     case fieldName
     of "index": readJson(dst.index, p)
     of "message": readJson(dst.message, p)
-    of "finish_reason": readFinishReason(dst.finish_reason, p)
+    of "finish_reason": readJson(dst.finish_reason, p)
     else: skipJson(p)
 
 proc readJson*(dst: var ChatPromptTokensDetails; p: var JsonParser) =
