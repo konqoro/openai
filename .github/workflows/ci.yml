@@ -9,7 +9,7 @@ on:
 
 jobs:
   compile:
-    name: Compile (ubuntu-latest)
+    name: Test (ubuntu-latest)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,9 +29,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev
 
-      - name: Compile tests and examples
+      - name: Run tests (debug)
+        run: nim c -r tests/tester.nim
+
+      - name: Run tests (release)
+        run: nim c -d:release -r tests/tester.nim
+
+      - name: Run tests (danger)
+        run: nim c -d:danger -r tests/tester.nim
+
+      - name: Compile examples
         run: |
-          nim c tests/test_openai.nim
-          nim c tests/test_openai_retry.nim
           nim c examples/live_ocr_retry.nim
           nim c examples/live_batch_chat_polling.nim
