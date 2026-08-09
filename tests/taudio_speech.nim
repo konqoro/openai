@@ -43,7 +43,7 @@ proc testSpeechOptionalFields() =
   doAssert body.contains("\"stream_format\":\"sse\"")
 
   let custom = speechCreate("gpt-4o-mini-tts", "hello",
-    speechCustomVoice("voice_1234"))
+    customVoice("voice_1234"))
   doAssert toJson(custom).contains("\"voice\":{\"id\":\"voice_1234\"}")
 
 proc testSpeechRequest() =

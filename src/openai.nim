@@ -1,3 +1,6 @@
-import ./openai/[audio_speech, batch, chat, embeddings, error, files, responses]
+## Shared configuration and error-envelope decoding. Import capability modules
+## explicitly, for example `openai/chat` or `openai/responses`.
 
-export audio_speech, batch, chat, embeddings, error, files, responses
+import ./openai/[config, error]
+
+export config, error

@@ -11,7 +11,7 @@ const
   FilesPath = "/files"
   DefaultMultipartBoundary* = "openai-nim-batch"
 
-proc fileUploadBody*(filename, purpose, content, boundary: string): string =
+proc uploadBody*(filename, purpose, content, boundary: string): string =
   result = "--" & boundary & "\r\n" &
     "Content-Disposition: form-data; name=\"purpose\"\r\n\r\n" &
     purpose & "\r\n" &
@@ -31,7 +31,7 @@ proc fileUploadRequest*(cfg: OpenAIConfig; filename, purpose: string;
     verb: hvPost,
     url: cfg.url & FilesPath,
     headers: hs,
-    body: fileUploadBody(filename, purpose, content, boundary),
+    body: uploadBody(filename, purpose, content, boundary),
     requestId: requestId,
     timeoutMs: timeoutMs
   )
@@ -47,7 +47,7 @@ proc fileUploadAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
     verb = hvPost,
     url = cfg.url & FilesPath,
     headers = hs,
-    body = fileUploadBody(filename, purpose, content, boundary),
+    body = uploadBody(filename, purpose, content, boundary),
     requestId = requestId,
     timeoutMs = timeoutMs
   )

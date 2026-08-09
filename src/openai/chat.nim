@@ -10,14 +10,14 @@ export chat_schema
 
 const ChatCompletionsPath = "/chat/completions"
 
-proc chatPartText*(text: sink string): ChatInputPart =
+proc partText*(text: sink string): ChatInputPart =
   ## Creates a text content part.
   result = ChatInputPart(
     `type`: ChatInputPartType.text,
     text: text
   )
 
-proc chatPartImageUrl*(url: sink string;
+proc partImageUrl*(url: sink string;
     detail = ChatImageDetail.auto): ChatInputPart =
   ## Creates an image content part backed by a URL or data URL.
   result = ChatInputPart(
@@ -28,7 +28,7 @@ proc chatPartImageUrl*(url: sink string;
     )
   )
 
-proc chatPartInputAudio*(data: sink string;
+proc partInputAudio*(data: sink string;
     format: ChatAudioFormat): ChatInputPart =
   ## Creates an encoded audio content part.
   result = ChatInputPart(
@@ -39,62 +39,62 @@ proc chatPartInputAudio*(data: sink string;
     )
   )
 
-proc chatContentText*(text: sink string): ChatInputContent =
+proc contentText*(text: sink string): ChatInputContent =
   ## Creates message content from text.
   result = ChatInputContent(
     kind: ChatInputContentKind.text,
     text: text
   )
 
-proc chatContentParts*(parts: sink seq[ChatInputPart]): ChatInputContent =
+proc contentParts*(parts: sink seq[ChatInputPart]): ChatInputContent =
   ## Creates message content from typed parts.
   result = ChatInputContent(
     kind: ChatInputContentKind.parts,
     parts: parts
   )
 
-proc chatSystemMessageText*(text: sink string; name: sink string = ""): ChatMessage =
+proc systemMessageText*(text: sink string; name: sink string = ""): ChatMessage =
   ## Creates a system message with text content.
   result = ChatMessage(
     role: ChatMessageRole.system,
-    content: chatContentText(text),
+    content: contentText(text),
     name: name
   )
 
-proc chatDeveloperMessageText*(text: sink string; name: sink string = ""): ChatMessage =
+proc developerMessageText*(text: sink string; name: sink string = ""): ChatMessage =
   ## Creates a developer message with text content.
   result = ChatMessage(
     role: ChatMessageRole.developer,
-    content: chatContentText(text),
+    content: contentText(text),
     name: name
   )
 
-proc chatUserMessageText*(text: sink string; name: sink string = ""): ChatMessage =
+proc userMessageText*(text: sink string; name: sink string = ""): ChatMessage =
   ## Creates a user message with text content.
   result = ChatMessage(
     role: ChatMessageRole.user,
-    content: chatContentText(text),
+    content: contentText(text),
     name: name
   )
 
-proc chatUserMessageParts*(parts: sink seq[ChatInputPart];
+proc userMessageParts*(parts: sink seq[ChatInputPart];
     name: sink string = ""): ChatMessage =
   ## Creates a user message with typed content parts.
   result = ChatMessage(
     role: ChatMessageRole.user,
-    content: chatContentParts(parts),
+    content: contentParts(parts),
     name: name
   )
 
-proc chatAssistantMessageText*(text: sink string; name: sink string = ""): ChatMessage =
+proc assistantMessageText*(text: sink string; name: sink string = ""): ChatMessage =
   ## Creates an assistant message with text content.
   result = ChatMessage(
     role: ChatMessageRole.assistant,
-    content: chatContentText(text),
+    content: contentText(text),
     name: name
   )
 
-proc chatAssistantMessageToolCalls*(
+proc assistantMessageToolCalls*(
     toolCalls: sink seq[ChatToolCall]): ChatMessage =
   ## Creates an assistant message containing function calls.
   result = ChatMessage(
@@ -102,21 +102,21 @@ proc chatAssistantMessageToolCalls*(
     tool_calls: toolCalls
   )
 
-proc chatToolMessageText*(text, toolCallId: sink string; name: sink string = ""): ChatMessage =
+proc toolMessageText*(text, toolCallId: sink string; name: sink string = ""): ChatMessage =
   ## Creates a function result message containing text.
   result = ChatMessage(
     role: ChatMessageRole.tool,
-    content: chatContentText(text),
+    content: contentText(text),
     name: name,
     tool_call_id: toolCallId
   )
 
-proc chatToolMessageJson*[T](value: T; toolCallId: sink string;
+proc toolMessageJson*[T](value: T; toolCallId: sink string;
     name: sink string = ""): ChatMessage =
   ## Creates a function result message containing JSON encoded as text.
-  chatToolMessageText(toJson(value), toolCallId, name)
+  toolMessageText(toJson(value), toolCallId, name)
 
-proc chatFunctionTool*(name: sink string; description: sink string = "";
+proc functionTool*(name: sink string; description: sink string = "";
     strict = true): ChatTool =
   ## Creates a function tool with an empty object parameter schema.
   result = ChatTool(
@@ -129,7 +129,7 @@ proc chatFunctionTool*(name: sink string; description: sink string = "";
     )
   )
 
-proc chatFunctionTool*(name: sink string; description: sink string;
+proc functionTool*(name: sink string; description: sink string;
     parameters: sink RawJson; strict = true): ChatTool =
   ## Creates a function tool from a raw JSON parameter schema.
   result = ChatTool(
@@ -142,17 +142,17 @@ proc chatFunctionTool*(name: sink string; description: sink string;
     )
   )
 
-proc chatFunctionTool*[TSchema](name: sink string; description: sink string;
+proc functionTool*[TSchema](name: sink string; description: sink string;
     parametersSchema: TSchema; strict = true): ChatTool =
   ## Creates a function tool from a serializable parameter schema.
-  chatFunctionTool(name, description, RawJson(toJson(parametersSchema)), strict)
+  functionTool(name, description, RawJson(toJson(parametersSchema)), strict)
 
-proc chatFunctionTool*[TSchema](name: sink string; parametersSchema: TSchema;
+proc functionTool*[TSchema](name: sink string; parametersSchema: TSchema;
     strict = true): ChatTool =
   ## Creates a function tool without a description.
-  chatFunctionTool(name, "", RawJson(toJson(parametersSchema)), strict)
+  functionTool(name, "", RawJson(toJson(parametersSchema)), strict)
 
-proc chatToolChoiceFunction*(name: sink string): ChatToolChoice =
+proc toolChoiceFunction*(name: sink string): ChatToolChoice =
   ## Requires the model to call the named function tool.
   ChatToolChoice(
     `type`: ChatToolType.function,
@@ -160,10 +160,10 @@ proc chatToolChoiceFunction*(name: sink string): ChatToolChoice =
   )
 
 let
-  chatFormatText* = ChatFormat(`type`: ChatFormatType.text)
-  chatFormatJsonObject* = ChatFormat(`type`: ChatFormatType.json_object)
+  formatText* = ChatFormat(`type`: ChatFormatType.text)
+  formatJsonObject* = ChatFormat(`type`: ChatFormatType.json_object)
 
-proc chatFormatJsonSchema*(name: sink string; schema: sink RawJson;
+proc formatJsonSchema*(name: sink string; schema: sink RawJson;
     description: sink string = ""; strict = true): ChatFormat =
   ## Creates a structured-output JSON Schema format.
   result = ChatFormat(
@@ -176,17 +176,17 @@ proc chatFormatJsonSchema*(name: sink string; schema: sink RawJson;
     )
   )
 
-proc chatFormatJsonSchema*[TSchema](name: sink string; schema: TSchema;
+proc formatJsonSchema*[TSchema](name: sink string; schema: TSchema;
     description: sink string = ""; strict = true): ChatFormat =
   ## Creates a structured-output format from a serializable schema.
-  chatFormatJsonSchema(name, RawJson(toJson(schema)), description, strict)
+  formatJsonSchema(name, RawJson(toJson(schema)), description, strict)
 
 proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     stream = false; temperature = 1.0;
     maxCompletionTokens = 0;
     reasoningEffort = ChatReasoningEffort.unspecified;
     tools: sink seq[ChatTool] = @[];
-    toolChoice = RawJson(""); responseFormat = chatFormatText;
+    toolChoice = RawJson(""); responseFormat = formatText;
     parallelToolCalls = true; metadata: sink RawJson = RawJson("");
     promptCacheKey: sink string = "";
     promptCacheOptions = PromptCacheOptions();

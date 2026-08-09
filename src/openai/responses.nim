@@ -10,21 +10,21 @@ export responses_schema
 
 const ResponsesPath = "/responses"
 
-let responseFormatText* = ResponseFormat(`type`: ResponseFormatType.text)
+let formatText* = ResponseFormat(`type`: ResponseFormatType.text)
 
-proc responseInputText*(text: sink string): ResponseInput =
+proc inputText*(text: sink string): ResponseInput =
   ## Creates a plain-text Responses API input.
   ResponseInput(kind: ResponseInputKind.text, text: text)
 
-proc responseInputItems*(items: sink seq[RawJson]): ResponseInput =
+proc inputItems*(items: sink seq[RawJson]): ResponseInput =
   ## Creates an input from message, function-result, or other API items.
   ResponseInput(kind: ResponseInputKind.items, items: items)
 
-proc responsePartText*(text: sink string): ResponsePart =
+proc partText*(text: sink string): ResponsePart =
   ## Creates an input text content part.
   ResponsePart(`type`: ResponsePartType.input_text, text: text)
 
-proc responsePartImageUrl*(url: sink string; detail = "auto"): ResponsePart =
+proc partImageUrl*(url: sink string; detail = "auto"): ResponsePart =
   ## Creates an image input content part backed by a URL or data URL.
   result = ResponsePart(
     `type`: ResponsePartType.input_image,
@@ -32,7 +32,7 @@ proc responsePartImageUrl*(url: sink string; detail = "auto"): ResponsePart =
     detail: detail
   )
 
-proc responsePartImageFile*(fileId: sink string; detail = "auto"): ResponsePart =
+proc partImageFile*(fileId: sink string; detail = "auto"): ResponsePart =
   ## Creates an image input content part backed by an uploaded file.
   result = ResponsePart(
     `type`: ResponsePartType.input_image,
@@ -40,15 +40,15 @@ proc responsePartImageFile*(fileId: sink string; detail = "auto"): ResponsePart 
     detail: detail
   )
 
-proc responsePartFileUrl*(url: sink string): ResponsePart =
+proc partFileUrl*(url: sink string): ResponsePart =
   ## Creates a file input content part backed by a URL.
   ResponsePart(`type`: ResponsePartType.input_file, file_url: url)
 
-proc responsePartFileId*(fileId: sink string): ResponsePart =
+proc partFileId*(fileId: sink string): ResponsePart =
   ## Creates a file input content part backed by an uploaded file.
   ResponsePart(`type`: ResponsePartType.input_file, file_id: fileId)
 
-proc responsePartFileData*(data, filename: sink string): ResponsePart =
+proc partFileData*(data, filename: sink string): ResponsePart =
   ## Creates a file input content part from encoded file data.
   result = ResponsePart(
     `type`: ResponsePartType.input_file,
@@ -56,14 +56,14 @@ proc responsePartFileData*(data, filename: sink string): ResponsePart =
     filename: filename
   )
 
-proc responseContentText*(text: sink string): ResponseContent =
+proc contentText*(text: sink string): ResponseContent =
   ## Creates message or function output content from text.
   result = ResponseContent(
     kind: ResponseContentKind.text,
     text: text
   )
 
-proc responseContentParts*(
+proc contentParts*(
     parts: sink seq[ResponsePart]): ResponseContent =
   ## Creates message or function output content from typed parts.
   result = ResponseContent(
@@ -71,50 +71,50 @@ proc responseContentParts*(
     parts: parts
   )
 
-proc responseMessageText*(role: ResponseRole;
+proc messageText*(role: ResponseRole;
     text: sink string): ResponseMessage =
   ## Creates a message input item with string content.
   result = ResponseMessage(
     role: role,
-    content: responseContentText(text)
+    content: contentText(text)
   )
 
-proc responseMessageParts*(role: ResponseRole;
+proc messageParts*(role: ResponseRole;
     parts: sink seq[ResponsePart]): ResponseMessage =
   ## Creates a message input item with typed content parts.
   result = ResponseMessage(
     role: role,
-    content: responseContentParts(parts)
+    content: contentParts(parts)
   )
 
-proc responseFunctionOutput*(callId: sink string;
+proc functionOutput*(callId: sink string;
     output: sink string): ResponseFunctionOutput =
   ## Creates a function-call output item containing text.
   result = ResponseFunctionOutput(
     `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
-    output: responseContentText(output)
+    output: contentText(output)
   )
 
-proc responseFunctionOutputParts*(callId: sink string;
+proc functionOutputParts*(callId: sink string;
     output: sink seq[ResponsePart]): ResponseFunctionOutput =
   ## Creates a function-call output item containing typed content parts.
   result = ResponseFunctionOutput(
     `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
-    output: responseContentParts(output)
+    output: contentParts(output)
   )
 
-proc responseFunctionOutputJson*[T](callId: sink string;
+proc functionOutputJson*[T](callId: sink string;
     output: T): ResponseFunctionOutput =
   ## Creates a function-call output item containing JSON encoded as text.
   result = ResponseFunctionOutput(
     `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
-    output: responseContentText(toJson(output))
+    output: contentText(toJson(output))
   )
 
-proc responseFunctionTool*(name: sink string; description: sink string = "";
+proc functionTool*(name: sink string; description: sink string = "";
     parameters: sink RawJson = EmptyResponseObjectSchema;
     strict = true): ResponseFunctionTool =
   ## Creates a function tool definition.
@@ -126,16 +126,16 @@ proc responseFunctionTool*(name: sink string; description: sink string = "";
     strict: strict
   )
 
-proc responseFunctionTool*[TSchema](name: sink string; description: sink string;
+proc functionTool*[TSchema](name: sink string; description: sink string;
     parametersSchema: TSchema; strict = true): ResponseFunctionTool =
   ## Creates a function tool definition from a serializable schema value.
-  responseFunctionTool(name, description, RawJson(toJson(parametersSchema)), strict)
+  functionTool(name, description, RawJson(toJson(parametersSchema)), strict)
 
-proc responseToolChoiceFunction*(name: sink string): ResponseToolChoice =
+proc toolChoiceFunction*(name: sink string): ResponseToolChoice =
   ## Requires the model to call the named function tool.
   ResponseToolChoice(`type`: ResponseToolType.function, name: name)
 
-proc responseFormatJsonSchema*(name: sink string; schema: sink RawJson;
+proc formatJsonSchema*(name: sink string; schema: sink RawJson;
     description: sink string = ""; strict = true): ResponseFormat =
   ## Creates a structured-output JSON Schema format.
   result = ResponseFormat(
@@ -146,10 +146,10 @@ proc responseFormatJsonSchema*(name: sink string; schema: sink RawJson;
     strict: strict
   )
 
-proc responseFormatJsonSchema*[TSchema](name: sink string; schema: TSchema;
+proc formatJsonSchema*[TSchema](name: sink string; schema: TSchema;
     description: sink string = ""; strict = true): ResponseFormat =
   ## Creates a structured-output format from a serializable schema value.
-  responseFormatJsonSchema(name, RawJson(toJson(schema)), description, strict)
+  formatJsonSchema(name, RawJson(toJson(schema)), description, strict)
 
 proc responseCreate*(model: sink string; input: sink ResponseInput;
     instructions: sink string = ""; maxOutputTokens = 0;

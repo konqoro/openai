@@ -84,13 +84,13 @@ proc testEmbeddingEncodingFormatEnum() =
     """{"model":"m","input":"text","encoding_format":"base64"}"""
 
 proc testEmbeddingInputKinds() =
-  doAssert toJson(embeddingCreate("m", embeddingInputTexts(@["one", "two"]),
+  doAssert toJson(embeddingCreate("m", inputTexts(@["one", "two"]),
     dimensions = 256, user = "user-1")) ==
     """{"model":"m","input":["one","two"],"dimensions":256,"user":"user-1"}"""
-  doAssert toJson(embeddingCreate("m", embeddingInputTokens(@[1, 2, 3]))) ==
+  doAssert toJson(embeddingCreate("m", inputTokens(@[1, 2, 3]))) ==
     """{"model":"m","input":[1,2,3]}"""
   doAssert toJson(embeddingCreate("m",
-    embeddingInputTokenArrays(@[@[1, 2], @[3, 4]]))) ==
+    inputTokenArrays(@[@[1, 2], @[3, 4]]))) ==
     """{"model":"m","input":[[1,2],[3,4]]}"""
 
 proc testEmbeddingBatchAdd() =
@@ -110,18 +110,18 @@ proc testEmbeddingParseAndAccessors() =
   doAssert parsed.model == "Qwen/Qwen3-Embedding-0.6B"
   doAssert inputTokens(parsed) == 7
   doAssert totalTokens(parsed) == 7
-  doAssert embedding(parsed).len == 3
-  doAssert embedding(parsed)[1] == 0.2'f32
-  expectValueError embedding(parsed, 1)
+  doAssert vector(parsed).len == 3
+  doAssert vector(parsed)[1] == 0.2'f32
+  expectValueError vector(parsed, 1)
 
 proc testBase64EmbeddingParseAndAccessors() =
   var parsed: EmbeddingResult
   doAssert embeddingParse(Base64Response, parsed)
   doAssert parsed.data.len == 1
   doAssert parsed.data[0].embedding.kind == EmbeddingValueKind.encoded
-  doAssert embeddingBase64(parsed) == "AQID"
-  expectValueError embedding(parsed)
-  expectValueError embeddingBase64(parsed, 1)
+  doAssert vectorBase64(parsed) == "AQID"
+  expectValueError vector(parsed)
+  expectValueError vectorBase64(parsed, 1)
 
 proc testEmbeddingParseFailure() =
   var parsed: EmbeddingResult

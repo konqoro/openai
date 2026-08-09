@@ -67,7 +67,7 @@ proc sampleConfig(): OpenAIConfig =
   OpenAIConfig(apiKey: "sk-test")
 
 block request_scalar_defaults:
-  let defaults = responseCreate("gpt-5.6-luna", responseInputText("Hello"))
+  let defaults = responseCreate("gpt-5.6-luna", inputText("Hello"))
   doAssert defaults.parallel_tool_calls
   doAssert defaults.store
   doAssert defaults.temperature == 1.0
@@ -81,7 +81,7 @@ block request_scalar_defaults:
   doAssert not defaultBody.contains("\"top_p\":")
   doAssert not defaultBody.contains("\"prompt_cache_options\":")
 
-  let explicit = responseCreate("gpt-5.6-luna", responseInputText("Hello"),
+  let explicit = responseCreate("gpt-5.6-luna", inputText("Hello"),
     background = true, parallelToolCalls = false, store = false,
     temperature = 0.0, topLogprobs = 5, topP = 0.9)
   let explicitBody = toJson(explicit)
@@ -92,7 +92,7 @@ block request_scalar_defaults:
   doAssert explicitBody.contains("\"top_logprobs\":5")
   doAssert explicitBody.contains("\"top_p\":0.9")
 
-  let cached = responseCreate("gpt-5.6-luna", responseInputText("Hello"),
+  let cached = responseCreate("gpt-5.6-luna", inputText("Hello"),
     promptCacheKey = "cache-key",
     promptCacheOptions = PromptCacheOptions(
       mode: PromptCacheMode.explicit,
@@ -117,7 +117,7 @@ block request_scalar_defaults:
 block simple_text_request:
   let params = responseCreate(
     model = "gpt-5.6-luna",
-    input = responseInputText("Hello"),
+    input = inputText("Hello"),
     instructions = "Be concise.",
     maxOutputTokens = 128,
     reasoning = ResponseReasoning(effort: ResponseReasoningEffort.low),
@@ -132,14 +132,14 @@ block simple_text_request:
   doAssert not body.contains("\"user\"")
 
 block message_content:
-  let text = responseContentText("Hello")
+  let text = contentText("Hello")
   doAssert text.kind == ResponseContentKind.text
   doAssert text.text == "Hello"
   doAssert toJson(text) == "\"Hello\""
 
-  let parts = responseContentParts(@[
-    responsePartText("What is shown?"),
-    responsePartImageUrl("https://example.com/image.png")
+  let parts = contentParts(@[
+    partText("What is shown?"),
+    partImageUrl("https://example.com/image.png")
   ])
   doAssert parts.kind == ResponseContentKind.parts
   doAssert parts.parts.len == 2
@@ -166,7 +166,7 @@ block message_content:
       unknownFields = ufReject
     )
 
-  let message = responseMessageText(ResponseRole.user, "Hello")
+  let message = messageText(ResponseRole.user, "Hello")
   doAssert message.role == ResponseRole.user
   doAssert message.content.kind == ResponseContentKind.text
   doAssert toJson(message) ==
@@ -185,12 +185,12 @@ block message_content:
     )
 
 block message_parts_and_tools:
-  let message = responseMessageParts(ResponseRole.user, @[
-    responsePartText("What is shown?"),
-    responsePartImageUrl("https://example.com/image.png", detail = "high"),
-    responsePartFileId("file_1")
+  let message = messageParts(ResponseRole.user, @[
+    partText("What is shown?"),
+    partImageUrl("https://example.com/image.png", detail = "high"),
+    partFileId("file_1")
   ])
-  let tool = responseFunctionTool(
+  let tool = functionTool(
     "lookup",
     "Look up a value",
     RawJson("""{"type":"object","properties":{"q":{"type":"string"}}}""")
@@ -199,15 +199,15 @@ block message_parts_and_tools:
   doAssert tool.name == "lookup"
   doAssert tool.description == "Look up a value"
   doAssert tool.strict
-  doAssert toJson(responseFunctionTool("empty")) ==
+  doAssert toJson(functionTool("empty")) ==
     """{"type":"function","name":"empty","parameters":""" &
     """{"type":"object","properties":{}},"strict":true}"""
   let params = responseCreate(
     "gpt-5.6-luna",
-    responseInputItems(@[RawJson(toJson(message))]),
+    inputItems(@[RawJson(toJson(message))]),
     tools = @[RawJson(toJson(tool))],
     toolChoice = ResponseToolChoiceRequired,
-    text = ResponseTextConfig(format: responseFormatJsonSchema(
+    text = ResponseTextConfig(format: formatJsonSchema(
       "answer", RawJson("""{"type":"object"}""")
     ))
   )
@@ -217,7 +217,7 @@ block message_parts_and_tools:
   doAssert body.contains("\"type\":\"input_file\"")
   doAssert body.contains("\"tool_choice\":\"required\"")
   doAssert body.contains("\"type\":\"json_schema\"")
-  let namedChoice = responseToolChoiceFunction("lookup")
+  let namedChoice = toolChoiceFunction("lookup")
   doAssert namedChoice.`type` == ResponseToolType.function
   doAssert namedChoice.name == "lookup"
   doAssert toJson(namedChoice) ==
@@ -236,21 +236,21 @@ block message_parts_and_tools:
     )
 
 block function_outputs:
-  let textOutput = responseFunctionOutput("call_1", "done")
+  let textOutput = functionOutput("call_1", "done")
   doAssert textOutput.call_id == "call_1"
   doAssert textOutput.output.kind == ResponseContentKind.text
   doAssert textOutput.output.text == "done"
   doAssert toJson(textOutput) ==
     """{"type":"function_call_output","call_id":"call_1","output":"done"}"""
 
-  let jsonOutput = responseFunctionOutputJson("call_1", Answer(answer: 42))
+  let jsonOutput = functionOutputJson("call_1", Answer(answer: 42))
   doAssert jsonOutput.output.text == "{\"answer\":42}"
   doAssert toJson(jsonOutput) ==
     """{"type":"function_call_output","call_id":"call_1","output":"{\"answer\":42}"}"""
 
-  let partsOutput = responseFunctionOutputParts("call_1", @[
-    responsePartText("done"),
-    responsePartImageFile("file_1")
+  let partsOutput = functionOutputParts("call_1", @[
+    partText("done"),
+    partImageFile("file_1")
   ])
   doAssert partsOutput.output.kind == ResponseContentKind.parts
   doAssert toJson(partsOutput) ==
@@ -273,7 +273,7 @@ block function_outputs:
 
 block request_and_batch:
   let cfg = sampleConfig()
-  let params = responseCreate("gpt-5.6-luna", responseInputText("Hi"))
+  let params = responseCreate("gpt-5.6-luna", inputText("Hi"))
   let req = responseRequest(cfg, params, requestId = 12, timeoutMs = 3000)
   doAssert req.verb == hvPost
   doAssert req.url == OpenAIBaseUrl & "/responses"

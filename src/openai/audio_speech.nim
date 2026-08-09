@@ -9,11 +9,11 @@ export audio_speech_schema
 
 const AudioSpeechPath = "/audio/speech"
 
-proc speechVoice*(name: sink string): SpeechVoice =
+proc voice*(name: sink string): SpeechVoice =
   ## Creates a built-in or provider-defined named voice.
   SpeechVoice(kind: SpeechVoiceKind.named, name: name)
 
-proc speechCustomVoice*(id: sink string): SpeechVoice =
+proc customVoice*(id: sink string): SpeechVoice =
   ## Creates a custom voice reference.
   SpeechVoice(kind: SpeechVoiceKind.custom, id: id)
 
@@ -37,7 +37,7 @@ proc speechCreate*(model, input, voice: sink string;
     responseFormat = SpeechResponseFormat.mp3; speed = 1.0;
     streamFormat = SpeechStreamFormat.audio): SpeechParams =
   ## Creates parameters using a named voice.
-  speechCreate(model, input, speechVoice(voice), instructions,
+  speechCreate(model, input, voice(voice), instructions,
     responseFormat, speed, streamFormat)
 
 proc speechRequest*(cfg: OpenAIConfig; params: SpeechParams;

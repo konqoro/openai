@@ -10,7 +10,7 @@ with typed Nim values while keeping full control of HTTP via
 
 - Relay-native: reuse your existing `Relay` client, batching, and polling flow.
 - OpenAI wording, Nim ergonomics: `responseCreate`, `chatCreate`,
-  `responseInputText`, `chatUserMessageText`, `firstText`.
+  `inputText`, `userMessageText`, `firstText`.
 - Strongly typed JSON mapping via `jsonx` (no dynamic `std/json` trees).
 - Optional retry helpers in `relay/retry`, so policy stays in your app.
 - No hidden transport abstraction to fight when scaling or debugging.
@@ -31,16 +31,18 @@ atlas install
 
 ## Importing
 
-`import openai` gives the full API: Responses, Chat Completions, embeddings,
-audio speech, batches, files, and errors. Prefer a scoped import when you only
-need one capability:
+`import openai` provides shared configuration and error-envelope decoding only. Import each capability
+explicitly; this keeps focused helper names such as `partText` unambiguous:
 
 ```nim
-import openai            # everything
+import openai            # OpenAIConfig, OpenAIBaseUrl, and ErrorResponse
 import openai/responses  # Responses API only
 import openai/chat       # chat completions only
 import openai/batch      # batch API only
 ```
+
+When importing two capability modules with overlapping helper names, qualify
+the call: `chat.partText("hello")` or `responses.partText("hello")`.
 
 Retry policy helpers live in `relay/retry` and status classifiers in `relay/http_status`; they are not part of the OpenAI API surface.
 
@@ -62,16 +64,18 @@ OpenAIConfig(apiKey: key, url: "https://api.deepinfra.com/v1/openai")
 Build requests with readable helpers:
 
 ```nim
+import openai/chat
+
 let params = chatCreate(
   model = "gpt-4.1-mini",
   messages = @[
-    chatSystemMessageText("Be concise."),
-    chatUserMessageText("Explain retry jitter in one sentence.")
+    systemMessageText("Be concise."),
+    userMessageText("Explain retry jitter in one sentence.")
   ],
   temperature = 0.2,
   maxCompletionTokens = 64,
   toolChoice = ChatToolChoiceNone,
-  responseFormat = chatFormatText
+  responseFormat = formatText
 )
 ```
 
@@ -109,7 +113,7 @@ proc main() =
 
   let params = responseCreate(
     model = "gpt-5.6-luna",
-    input = responseInputText("Write one short Nim tip."),
+    input = inputText("Write one short Nim tip."),
     maxOutputTokens = 48
   )
 
@@ -145,11 +149,11 @@ proc main() =
   var batch: RequestBatch
   chatAdd(batch, cfg, chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[chatUserMessageText("Define gradient descent in one sentence.")]
+    messages = @[userMessageText("Define gradient descent in one sentence.")]
   ), requestId = 1)
   chatAdd(batch, cfg, chatCreate(
     model = "gpt-4.1-mini",
-    messages = @[chatUserMessageText("Define dropout in one sentence.")]
+    messages = @[userMessageText("Define dropout in one sentence.")]
   ), requestId = 2)
 
   # Capture size before startRequests(batch) moves the batch.
@@ -174,13 +178,13 @@ main()
 let params = chatCreate(
   model = "gpt-4.1-mini",
   messages = @[
-    chatUserMessageParts(@[
-      chatPartText("Describe this image."),
-      chatPartImageUrl("data:image/jpeg;base64,...")
+    userMessageParts(@[
+      partText("Describe this image."),
+      partImageUrl("data:image/jpeg;base64,...")
     ])
   ],
   toolChoice = ChatToolChoiceNone,
-  responseFormat = chatFormatText
+  responseFormat = formatText
 )
 ```
 
@@ -214,7 +218,7 @@ type
     required: seq[string]
     additionalProperties: bool
 
-let weatherTool = chatFunctionTool(
+let weatherTool = functionTool(
   "get_weather",
   "Look up current weather for a city",
   WeatherToolSchema(
@@ -228,7 +232,7 @@ let weatherTool = chatFunctionTool(
   )
 )
 
-let weatherOutput = chatFormatJsonSchema(
+let weatherOutput = formatJsonSchema(
   "weather_answer",
   WeatherAnswerSchema(
     `type`: "object",
@@ -246,7 +250,7 @@ let weatherOutput = chatFormatJsonSchema(
 let params = chatCreate(
   model = "gpt-4.1-mini",
   messages = @[
-    chatUserMessageText("What's the weather in Berlin and what should I wear?")
+    userMessageText("What's the weather in Berlin and what should I wear?")
   ],
   tools = @[weatherTool],
   toolChoice = ChatToolChoiceRequired,
@@ -285,9 +289,9 @@ proc main() =
   # One JSONL request line per chat-completions call.
   let params = chatCreate(
     model = "gpt-5.6-luna",
-    messages = @[chatUserMessageText("Define batch polling in one sentence.")]
+    messages = @[userMessageText("Define batch polling in one sentence.")]
   )
-  let line = batchInputLineJson(
+  let line = inputLineJson(
     "request-1",
     RawJson(toJson(params)),
     url = "/v1/chat/completions"
@@ -370,14 +374,14 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
 ## API Cheat Sheet
 
 - Responses API:
-  `responseInputText`, `responseInputItems`, `responseCreate`,
-  `responseRequest`, `responseAdd`, `responseParse`, `responseFunctionTool`,
-  `responseFormatJsonSchema`, `responseFunctionOutputJson`
+  `inputText`, `inputItems`, `responseCreate`,
+  `responseRequest`, `responseAdd`, `responseParse`, `functionTool`,
+  `formatJsonSchema`, `functionOutputJson`
 - Chat Completions:
   `chatCreate`, `chatRequest`, `chatAdd`, `chatParse`,
-  `chatSystemMessageText`, `chatDeveloperMessageText`,
-  `chatUserMessageText`, `chatUserMessageParts`, `chatPartText`,
-  `chatPartImageUrl`, `chatFunctionTool`, `chatFormatJsonSchema`
+  `systemMessageText`, `developerMessageText`,
+  `userMessageText`, `userMessageParts`, `partText`,
+  `partImageUrl`, `functionTool`, `formatJsonSchema`
 - Shared response accessors:
   `createdAt`, `firstText`, `allTextParts`, `functionCalls`,
   `firstCallId`, `firstCallName`, `firstCallArgs`, `parseFirstTextJson`,
@@ -388,19 +392,19 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
 - Prompt caching:
   `PromptCacheMode`, `PromptCacheTtl`, `PromptCacheOptions`
 - Embeddings:
-  `embeddingInputText`, `embeddingInputTexts`, `embeddingInputTokens`,
+  `inputText`, `inputTexts`, `inputTokens`,
   `embeddingCreate`, `embeddingRequest`, `embeddingAdd`, `embeddingParse`,
-  `embedding`, `embeddingBase64`
+  `vector`, `vectorBase64`
 - Speech:
-  `speechVoice`, `speechCustomVoice`, `speechCreate`, `speechRequest`,
+  `voice`, `customVoice`, `speechCreate`, `speechRequest`,
   `speechAdd`
 - Retry helpers:
   `initRetryPolicy`, `retryDelayMs`, `isRetryable` (from `relay/retry`)
 - Batch helpers (from `openai/batch`):
   `batchCreate`, `batchCreateRequest`, `batchRetrieveRequest`,
   `batchListRequest`, `batchCancelRequest`, `batchParse`, `batchListParse`,
-  `batchInputLine`, `batchInputLineJson`, `addBatchInputLine`, `batchOutputLineParse`,
-  `statusOf`, `isTerminal`, `totalRequests`, `inputTokens`, `outputTokens`
+  `inputLine`, `inputLineJson`, `addInputLine`, `batchOutputLineParse`,
+  `isTerminal`, `totalRequests`, `inputTokens`, `outputTokens`
 - File helpers (from `openai/files`):
   `fileUploadRequest`, `fileUploadAdd`, `fileRetrieveRequest`,
   `fileListRequest`, `fileContentRequest`, `fileDeleteRequest`,

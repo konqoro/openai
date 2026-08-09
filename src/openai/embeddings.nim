@@ -10,19 +10,19 @@ export embeddings_schema
 
 const EmbeddingsPath = "/embeddings"
 
-proc embeddingInputText*(text: sink string): EmbeddingInput =
+proc inputText*(text: sink string): EmbeddingInput =
   ## Creates a single text input.
   EmbeddingInput(kind: EmbeddingInputKind.text, text: text)
 
-proc embeddingInputTexts*(texts: sink seq[string]): EmbeddingInput =
+proc inputTexts*(texts: sink seq[string]): EmbeddingInput =
   ## Creates a batch of text inputs.
   EmbeddingInput(kind: EmbeddingInputKind.texts, texts: texts)
 
-proc embeddingInputTokens*(tokens: sink seq[int]): EmbeddingInput =
+proc inputTokens*(tokens: sink seq[int]): EmbeddingInput =
   ## Creates a single token-array input.
   EmbeddingInput(kind: EmbeddingInputKind.tokens, tokens: tokens)
 
-proc embeddingInputTokenArrays*(tokenArrays: sink seq[seq[int]]): EmbeddingInput =
+proc inputTokenArrays*(tokenArrays: sink seq[seq[int]]): EmbeddingInput =
   ## Creates a batch of token-array inputs.
   EmbeddingInput(kind: EmbeddingInputKind.tokenArrays, token_arrays: tokenArrays)
 
@@ -42,7 +42,7 @@ proc embeddingCreate*(model, input: sink string;
     encodingFormat = EmbeddingFormat.float; dimensions = 0;
     user: sink string = ""): EmbeddingParams =
   ## Creates parameters for a single text input.
-  embeddingCreate(model, embeddingInputText(input), encodingFormat,
+  embeddingCreate(model, inputText(input), encodingFormat,
     dimensions, user)
 
 proc embeddingRequest*(cfg: OpenAIConfig; params: EmbeddingParams;
@@ -71,35 +71,35 @@ proc raiseAccessorValueError(message: string) {.noinline, noreturn.} =
 
 proc ensureEmbeddingIndex(embeddingCount, i: int) {.inline.} =
   if i < 0 or i >= embeddingCount:
-    raiseAccessorValueError("embedding index " & $i &
+    raiseAccessorValueError("vector index " & $i &
       " out of range for " & $embeddingCount & " embeddings")
 
 proc ensureFloatEmbedding(x: EmbeddingValue; i: int) {.inline.} =
   if x.kind != EmbeddingValueKind.values:
-    raiseAccessorValueError("embedding " & $i &
-      " uses base64 encoding; request float encoding or use embeddingBase64()")
+    raiseAccessorValueError("vector " & $i &
+      " uses base64 encoding; request float encoding or use vectorBase64()")
 
 proc ensureBase64Embedding(x: EmbeddingValue; i: int) {.inline.} =
   if x.kind != EmbeddingValueKind.encoded:
-    raiseAccessorValueError("embedding " & $i &
-      " uses float encoding; use embedding() for numeric vectors")
+    raiseAccessorValueError("vector " & $i &
+      " uses float encoding; use vector() for numeric vectors")
 
-proc embedding*(x: EmbeddingResult; i = 0): lent seq[float32] {.inline.} =
+proc vector*(x: EmbeddingResult; i = 0): lent seq[float32] {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureFloatEmbedding(x.data[i].embedding, i)
   result = x.data[i].embedding.values
 
-proc embedding*(x: var EmbeddingResult; i = 0): var seq[float32] {.inline.} =
+proc vector*(x: var EmbeddingResult; i = 0): var seq[float32] {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureFloatEmbedding(x.data[i].embedding, i)
   result = x.data[i].embedding.values
 
-proc embeddingBase64*(x: EmbeddingResult; i = 0): lent string {.inline.} =
+proc vectorBase64*(x: EmbeddingResult; i = 0): lent string {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureBase64Embedding(x.data[i].embedding, i)
   result = x.data[i].embedding.encoded
 
-proc embeddingBase64*(x: var EmbeddingResult; i = 0): var string {.inline.} =
+proc vectorBase64*(x: var EmbeddingResult; i = 0): var string {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureBase64Embedding(x.data[i].embedding, i)
   result = x.data[i].embedding.encoded

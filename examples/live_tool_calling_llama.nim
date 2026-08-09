@@ -73,7 +73,7 @@ proc main() =
   if apiKey.len == 0:
     quit("Set DEEPINFRA_API_KEY before running this example.")
 
-  let weatherTool = chatFunctionTool(
+  let weatherTool = functionTool(
     "get_weather",
     "Look up current weather for a city.",
     WeatherToolSchema(
@@ -83,7 +83,7 @@ proc main() =
       additionalProperties: false
     )
   )
-  let weatherAnswerFormat = chatFormatJsonSchema(
+  let weatherAnswerFormat = formatJsonSchema(
     "weather_answer",
     WeatherAnswerSchema(
       `type`: "object",
@@ -109,16 +109,16 @@ proc main() =
   var params = chatCreate(
     model = "Qwen/Qwen3-235B-A22B-Instruct-2507",
     messages = @[
-      chatSystemMessageText(
+      systemMessageText(
         "You are concise. Use the weather tool before answering weather questions."
       ),
-      chatUserMessageText("What is the weather in Seattle today and what should I wear?")
+      userMessageText("What is the weather in Seattle today and what should I wear?")
     ],
     temperature = 0.0,
     maxCompletionTokens = 128,
     tools = @[weatherTool],
     toolChoice = ChatToolChoiceRequired,
-    responseFormat = chatFormatText
+    responseFormat = formatText
   )
 
   # Run local tool code with model-provided arguments.
@@ -132,8 +132,8 @@ proc main() =
     "\n  Result:      ", toJson(toolResult)
 
   # Turn 2: continue the same conversation with tool call + tool result.
-  params.messages.add(chatAssistantMessageToolCalls(functionCalls(firstTurn)))
-  params.messages.add(chatToolMessageJson(
+  params.messages.add(assistantMessageToolCalls(functionCalls(firstTurn)))
+  params.messages.add(toolMessageJson(
     toolResult,
     firstCallId(firstTurn),
     name = firstCallName(firstTurn)

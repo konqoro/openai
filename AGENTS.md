@@ -7,7 +7,8 @@ contract materially clearer. Call out any such change in the handoff.
 
 ## Project Structure
 
-- `src/openai.nim` is the package entry point. It re-exports the public capability modules.
+- `src/openai.nim` is the lightweight package entry point. It exports shared configuration and
+  error-envelope decoding only; callers import capability modules explicitly.
 - `src/openai/<capability>.nim` owns the ergonomic API for one OpenAI capability: constructors,
   request builders, batch integration, parsers, and response accessors.
 - `src/openai/schema/<capability>_schema.nim` owns direct JSON-mapped request and response types.
@@ -34,6 +35,10 @@ contract materially clearer. Call out any such change in the handoff.
   - `<capability>Request` creates a Relay request.
   - `<capability>Add` adds that request to a `RequestBatch`.
   - `<capability>Parse` decodes a response body into caller-owned storage and returns `bool`.
+- Keep these high-frequency operation names capability-qualified even in a scoped module, for example
+  `chatCreate` and `responseParse`. Focused typed builders drop the capability prefix: use names such
+  as `partText`, `messageText`, `functionTool`, and `formatJsonSchema`. Ambiguity between two imported
+  capability modules is intentional; callers qualify the occasional collision with the module name.
 - Use the same accessor names for normalized or derived concepts: `createdAt`, `inputTokens`,
   `outputTokens`, `cachedInputTokens`, `reasoningTokens`, and `totalTokens`. Use direct field syntax
   for public wire fields such as `id`, `model`, and `status`.
@@ -134,8 +139,8 @@ contract materially clearer. Call out any such change in the handoff.
 
 - Constructors must build public schema values directly. Avoid parallel representations that can
   drift apart.
-- Prefer focused helpers such as `chatPartText`, `responseMessageParts`, or
-  `responseFunctionOutputJson` when they remove protocol boilerplate or prevent an invalid shape.
+- Prefer focused helpers such as `partText`, `messageParts`, or
+  `functionOutputJson` when they remove protocol boilerplate or prevent an invalid shape.
 - Use typed content containers rather than returning `RawJson` for a stable message or content
   union. Use `RawJson` only at an intentionally open boundary.
 - For schema-taking helpers, provide a `RawJson` overload and, where useful, a generic overload that

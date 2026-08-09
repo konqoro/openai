@@ -22,7 +22,7 @@ proc batchCreate*(inputFileId, endpoint: sink string;
     output_expires_after: outputExpiresAfter
   )
 
-proc batchOutputExpiresAfter*(seconds: int;
+proc outputExpiry*(seconds: int;
     anchor: sink string = "created_at"): BatchOutputExpiry {.inline.} =
   BatchOutputExpiry(anchor: anchor, seconds: seconds)
 
@@ -53,18 +53,18 @@ proc batchCancelRequest*(cfg: OpenAIConfig; batchId: string;
   request(cfg, hvPost, cfg.url & BatchesPath & "/" & batchId & "/cancel",
     requestId, timeoutMs, headers)
 
-proc batchInputLine*(customId: sink string; body: sink RawJson;
+proc inputLine*(customId: sink string; body: sink RawJson;
     url: string): BatchInputLine =
   BatchInputLine(custom_id: customId, url: url, body: body)
 
-proc addBatchInputLine*(s: Stream; customId: sink string;
+proc addInputLine*(s: Stream; customId: sink string;
     body: sink RawJson; url: string) =
-  writeJson(s, batchInputLine(customId, body, url))
+  writeJson(s, inputLine(customId, body, url))
   s.write('\n')
 
-proc batchInputLineJson*(customId: sink string; body: sink RawJson; url: string): string =
+proc inputLineJson*(customId: sink string; body: sink RawJson; url: string): string =
   let s = streams.open(newStringOfCap(string(body).len + 200))
-  addBatchInputLine(s, customId, body, url)
+  addInputLine(s, customId, body, url)
   result = move(s.s)
 
 proc batchParse*(body: string; dst: var Batch;

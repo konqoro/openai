@@ -106,7 +106,7 @@ proc testBatchCreate() =
     inputFileId = "file-abc123",
     endpoint = "/v1/chat/completions",
     metadata = RawJson("""{"run":"r1"}"""),
-    outputExpiresAfter = batchOutputExpiresAfter(2592000)
+    outputExpiresAfter = outputExpiry(2592000)
   )
   doAssert toJson(withExpiry) ==
     """{"input_file_id":"file-abc123","endpoint":"/v1/chat/completions","completion_window":"24h","metadata":{"run":"r1"},"output_expires_after":{"anchor":"created_at","seconds":2592000}}"""
@@ -135,7 +135,7 @@ proc testBatchRequestBuilders() =
   doAssert cancel.body.len == 0
 
 proc testInputLineJson() =
-  let line = batchInputLineJson(
+  let line = inputLineJson(
     "request-1",
     RawJson("""{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}"""),
     url = "/v1/chat/completions",
@@ -144,7 +144,7 @@ proc testInputLineJson() =
     """{"custom_id":"request-1","method":"POST","url":"/v1/chat/completions","body":{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}}""" & "\n"
 
   var st = streams.open("")
-  addBatchInputLine(st, "request-1",
+  addInputLine(st, "request-1",
     RawJson("""{"model":"gpt-5.6-luna","messages":[{"role":"user","content":"hi"}]}"""),
     "/v1/chat/completions")
   doAssert move(st.s) == line
@@ -155,7 +155,7 @@ proc testInputLineJson() =
   doAssert parsed.url == "/v1/chat/completions"
   doAssert string(parsed.body).contains("gpt-5.6-luna")
 
-  let obj = batchInputLine("request-1",
+  let obj = inputLine("request-1",
     RawJson("""{"model":"gpt-5.6-luna"}"""), "/v1/chat/completions")
   doAssert obj.custom_id == "request-1"
   doAssert obj.`method` == "POST"
