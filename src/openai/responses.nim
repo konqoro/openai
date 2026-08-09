@@ -30,7 +30,7 @@ proc responsePartText*(text: sink string): ResponseInputContent =
 
 proc responsePartImageUrl*(url: sink string; detail = "auto"): ResponseInputContent =
   ## Creates an image input content part backed by a URL or data URL.
-  ResponseInputContent(
+  result = ResponseInputContent(
     `type`: ResponseInputContentType.input_image,
     image_url: url,
     detail: detail
@@ -38,7 +38,7 @@ proc responsePartImageUrl*(url: sink string; detail = "auto"): ResponseInputCont
 
 proc responsePartImageFile*(fileId: sink string; detail = "auto"): ResponseInputContent =
   ## Creates an image input content part backed by an uploaded file.
-  ResponseInputContent(
+  result = ResponseInputContent(
     `type`: ResponseInputContentType.input_image,
     file_id: fileId,
     detail: detail
@@ -54,7 +54,7 @@ proc responsePartFileId*(fileId: sink string): ResponseInputContent =
 
 proc responsePartFileData*(data, filename: sink string): ResponseInputContent =
   ## Creates a file input content part from encoded file data.
-  ResponseInputContent(
+  result = ResponseInputContent(
     `type`: ResponseInputContentType.input_file,
     file_data: data,
     filename: filename
@@ -62,7 +62,7 @@ proc responsePartFileData*(data, filename: sink string): ResponseInputContent =
 
 proc responseContentText*(text: sink string): ResponseContent =
   ## Creates message or function output content from text.
-  ResponseContent(
+  result = ResponseContent(
     kind: ResponseContentKind.text,
     text: text
   )
@@ -70,7 +70,7 @@ proc responseContentText*(text: sink string): ResponseContent =
 proc responseContentParts*(
     parts: sink seq[ResponseInputContent]): ResponseContent =
   ## Creates message or function output content from typed parts.
-  ResponseContent(
+  result = ResponseContent(
     kind: ResponseContentKind.parts,
     parts: parts
   )
@@ -78,7 +78,7 @@ proc responseContentParts*(
 proc responseMessageText*(role: ResponseInputRole;
     text: sink string): ResponseInputMessage =
   ## Creates a message input item with string content.
-  ResponseInputMessage(
+  result = ResponseInputMessage(
     role: role,
     content: responseContentText(text)
   )
@@ -86,7 +86,7 @@ proc responseMessageText*(role: ResponseInputRole;
 proc responseMessageParts*(role: ResponseInputRole;
     parts: sink seq[ResponseInputContent]): ResponseInputMessage =
   ## Creates a message input item with typed content parts.
-  ResponseInputMessage(
+  result = ResponseInputMessage(
     role: role,
     content: responseContentParts(parts)
   )
@@ -94,7 +94,7 @@ proc responseMessageParts*(role: ResponseInputRole;
 proc responseFunctionOutput*(callId: sink string;
     output: sink string): ResponseFunctionOutput =
   ## Creates a function-call output item containing text.
-  ResponseFunctionOutput(
+  result = ResponseFunctionOutput(
     `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
     output: responseContentText(output)
@@ -103,7 +103,7 @@ proc responseFunctionOutput*(callId: sink string;
 proc responseFunctionOutputParts*(callId: sink string;
     output: sink seq[ResponseInputContent]): ResponseFunctionOutput =
   ## Creates a function-call output item containing typed content parts.
-  ResponseFunctionOutput(
+  result = ResponseFunctionOutput(
     `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
     output: responseContentParts(output)
@@ -112,7 +112,7 @@ proc responseFunctionOutputParts*(callId: sink string;
 proc responseFunctionOutputJson*[T](callId: sink string;
     output: T): ResponseFunctionOutput =
   ## Creates a function-call output item containing JSON encoded as text.
-  ResponseFunctionOutput(
+  result = ResponseFunctionOutput(
     `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
     output: responseContentText(toJson(output))
@@ -122,7 +122,7 @@ proc responseFunctionTool*(name: sink string; description: sink string = "";
     parameters: sink RawJson = EmptyResponseObjectSchema;
     strict = true): ResponseFunctionTool =
   ## Creates a function tool definition.
-  ResponseFunctionTool(
+  result = ResponseFunctionTool(
     `type`: ResponseToolType.function,
     name: name,
     description: description,
@@ -142,7 +142,7 @@ proc responseToolChoiceFunction*(name: sink string): ResponseNamedToolChoice =
 proc responseFormatJsonSchema*(name: sink string; schema: sink RawJson;
     description: sink string = ""; strict = true): ResponseTextFormat =
   ## Creates a structured-output JSON Schema format.
-  ResponseTextFormat(
+  result = ResponseTextFormat(
     `type`: ResponseTextFormatType.json_schema,
     name: name,
     description: description,
@@ -161,10 +161,12 @@ proc responseCreate*(model: sink string; input: sink ResponseInput;
     tools: sink seq[RawJson] = @[]; toolChoice = RawJson("");
     previousResponseId: sink string = ""; background = false;
     parallelToolCalls = true; store = true; stream = false;
+    promptCacheKey: sink string = "";
+    promptCacheOptions = ResponsePromptCacheOptions();
     temperature = 1.0; topLogprobs = 0;
     topP = 1.0): ResponseCreateParams =
   ## Creates parameters for `POST /responses` without deprecated fields.
-  ResponseCreateParams(
+  result = ResponseCreateParams(
     model: model,
     input: input,
     instructions: instructions,
@@ -178,6 +180,8 @@ proc responseCreate*(model: sink string; input: sink ResponseInput;
     parallel_tool_calls: parallelToolCalls,
     store: store,
     stream: stream,
+    prompt_cache_key: promptCacheKey,
+    prompt_cache_options: promptCacheOptions,
     temperature: temperature,
     top_logprobs: topLogprobs,
     top_p: topP
@@ -214,19 +218,21 @@ proc raiseInvalidOutputIndex(i, outputCount: int) {.inline, noreturn.} =
   raiseResponseAccessorError("output item index " & $i &
     " out of range for " & $outputCount & " output items")
 
-proc raiseNoTextPartsAtOutput(i: int) {.inline, noreturn.} =
-  raiseResponseAccessorError("output item index " & $i & " has no output text")
+proc raiseNoOutputText() {.inline, noreturn.} =
+  raiseResponseAccessorError("response has no output text")
 
 proc ensureOutputIndex(outputCount, i: int) {.inline.} =
   if i < 0 or i >= outputCount:
     raiseInvalidOutputIndex(i, outputCount)
 
-proc firstNonEmptyTextPartIndex(item: ResponseOutputItem; i: int): int =
-  for partIdx in 0..<item.content.len:
-    if item.content[partIdx].`type` == ResponseOutputContentType.output_text and
-        item.content[partIdx].text.len > 0:
-      return partIdx
-  raiseNoTextPartsAtOutput(i)
+proc firstNonEmptyTextPartLocation(
+    x: ResponseCreateResult): tuple[outputIndex, partIndex: int] =
+  for outputIndex in 0..<x.output.len:
+    for partIndex in 0..<x.output[outputIndex].content.len:
+      let part = x.output[outputIndex].content[partIndex]
+      if part.`type` == ResponseOutputContentType.output_text and part.text.len > 0:
+        return (outputIndex, partIndex)
+  raiseNoOutputText()
 
 proc idOf*(x: ResponseCreateResult): lent string {.inline.} =
   result = x.id
@@ -246,34 +252,44 @@ proc createdAt*(x: ResponseCreateResult): float {.inline.} =
 proc outputItems*(x: ResponseCreateResult): int {.inline.} =
   x.output.len
 
-proc firstText*(x: ResponseCreateResult; i = 0): lent string =
-  ## Returns the first non-empty output-text part of output item `i`.
-  ensureOutputIndex(x.output.len, i)
-  let partIdx = firstNonEmptyTextPartIndex(x.output[i], i)
-  result = x.output[i].content[partIdx].text
+proc outputItem*(x: ResponseCreateResult;
+    outputIndex: int): lent ResponseOutputItem {.inline.} =
+  ## Returns output item `outputIndex` after validating the index.
+  ensureOutputIndex(x.output.len, outputIndex)
+  result = x.output[outputIndex]
 
-proc firstText*(x: var ResponseCreateResult; i = 0): var string =
-  ## Returns a mutable view of the first non-empty output-text part of output item `i`.
-  ensureOutputIndex(x.output.len, i)
-  let partIdx = firstNonEmptyTextPartIndex(x.output[i], i)
-  result = x.output[i].content[partIdx].text
+proc outputItem*(x: var ResponseCreateResult;
+    outputIndex: int): var ResponseOutputItem {.inline.} =
+  ## Returns a mutable view of output item `outputIndex` after validating the index.
+  ensureOutputIndex(x.output.len, outputIndex)
+  result = x.output[outputIndex]
 
-proc parseFirstTextJson*[T](x: ResponseCreateResult; dst: var T; i = 0;
+proc firstText*(x: ResponseCreateResult): lent string =
+  ## Returns the first non-empty output-text part in response order.
+  let location = firstNonEmptyTextPartLocation(x)
+  result = x.output[location.outputIndex].content[location.partIndex].text
+
+proc firstText*(x: var ResponseCreateResult): var string =
+  ## Returns a mutable view of the first non-empty output-text part in response order.
+  let location = firstNonEmptyTextPartLocation(x)
+  result = x.output[location.outputIndex].content[location.partIndex].text
+
+proc parseFirstTextJson*[T](x: ResponseCreateResult; dst: var T;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
-  ## Parses the first output text of output item `i` as `T`.
+  ## Parses the first non-empty output text in response order as `T`.
   try:
-    dst = fromJson(x.firstText(i), T, unknownFields = unknownFields)
+    dst = fromJson(x.firstText(), T, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc allTextParts*(x: ResponseCreateResult; i = 0): seq[string] =
-  ## Returns all output-text parts of output item `i`.
+proc allTextParts*(x: ResponseCreateResult): seq[string] =
+  ## Returns all output-text parts in response order.
   result = @[]
-  ensureOutputIndex(x.output.len, i)
-  for part in x.output[i].content:
-    if part.`type` == ResponseOutputContentType.output_text:
-      result.add(part.text)
+  for item in x.output:
+    for part in item.content:
+      if part.`type` == ResponseOutputContentType.output_text:
+        result.add(part.text)
 
 proc functionCalls*(x: ResponseCreateResult): seq[ResponseOutputItem] =
   ## Returns all function-call output items in response order.
@@ -284,6 +300,7 @@ proc functionCalls*(x: ResponseCreateResult): seq[ResponseOutputItem] =
 
 proc hasFunctionCalls*(x: ResponseCreateResult): bool =
   ## Returns whether the response contains a function-call output item.
+  result = false
   for item in x.output:
     if item.`type` == ResponseOutputItemType.function_call:
       return true

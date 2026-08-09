@@ -2,6 +2,9 @@ import std/options
 export options
 import jsonx
 import jsonx/[parsejson, streams]
+import ./prompt_cache_schema
+
+export prompt_cache_schema
 
 type
   ChatMessageRole* = enum
@@ -155,8 +158,8 @@ type
     json_schema*: ChatResponseFormatJsonSchema
 
   ChatPromptCacheOptions* = object
-    mode*: string
-    ttl*: string
+    mode*: PromptCacheMode
+    ttl*: PromptCacheTtl
 
   ChatMessage* = object
     role*: ChatMessageRole
@@ -282,9 +285,9 @@ proc writeJson*(s: Stream; x: ChatResponseFormat) =
 proc writeJson*(s: Stream; x: ChatPromptCacheOptions) =
   var comma = false
   streams.write(s, "{")
-  if x.mode.len > 0:
+  if x.mode != PromptCacheMode.unspecified:
     writeJsonField(s, "mode", x.mode)
-  if x.ttl.len > 0:
+  if x.ttl != PromptCacheTtl.unspecified:
     writeJsonField(s, "ttl", x.ttl)
   streams.write(s, "}")
 
@@ -329,7 +332,8 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
     writeJsonField(s, "metadata", x.metadata)
   if x.prompt_cache_key.len > 0:
     writeJsonField(s, "prompt_cache_key", x.prompt_cache_key)
-  if x.prompt_cache_options.mode.len > 0 or x.prompt_cache_options.ttl.len > 0:
+  if x.prompt_cache_options.mode != PromptCacheMode.unspecified or
+      x.prompt_cache_options.ttl != PromptCacheTtl.unspecified:
     writeJsonField(s, "prompt_cache_options", x.prompt_cache_options)
   if x.safety_identifier.len > 0:
     writeJsonField(s, "safety_identifier", x.safety_identifier)

@@ -6,6 +6,9 @@ import std/[options, strutils]
 export options
 import jsonx
 import jsonx/[parsejson, streams]
+import ./prompt_cache_schema
+
+export prompt_cache_schema
 
 type
   ResponseInputKind* = enum
@@ -100,8 +103,8 @@ type
     context*: string
 
   ResponsePromptCacheOptions* = object
-    mode*: string
-    ttl*: string
+    mode*: PromptCacheMode
+    ttl*: PromptCacheTtl
 
   OpenAIResponseIn* = object
     model*: string
@@ -332,14 +335,15 @@ proc writeJson*(s: Stream; x: ResponseReasoning) =
 proc writeJson*(s: Stream; x: ResponsePromptCacheOptions) =
   var comma = false
   streams.write(s, "{")
-  if x.mode.len > 0:
+  if x.mode != PromptCacheMode.unspecified:
     writeJsonField(s, "mode", x.mode)
-  if x.ttl.len > 0:
+  if x.ttl != PromptCacheTtl.unspecified:
     writeJsonField(s, "ttl", x.ttl)
   streams.write(s, "}")
 
 proc hasPromptCacheOptions(x: ResponsePromptCacheOptions): bool {.inline.} =
-  x.mode.len > 0 or x.ttl.len > 0
+  x.mode != PromptCacheMode.unspecified or
+    x.ttl != PromptCacheTtl.unspecified
 
 proc hasReasoning(x: ResponseReasoning): bool {.inline.} =
   x.effort != ResponseReasoningEffort.unspecified or x.summary.len > 0 or

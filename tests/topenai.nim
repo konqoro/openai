@@ -708,7 +708,10 @@ proc testStoreAndCurrentFieldsSerialization() =
     parallelToolCalls = false,
     metadata = RawJson("""{"suite":"chat"}"""),
     promptCacheKey = "cache-key",
-    promptCacheOptions = ChatPromptCacheOptions(mode: "explicit", ttl: "30m"),
+    promptCacheOptions = ChatPromptCacheOptions(
+      mode: PromptCacheMode.explicit,
+      ttl: PromptCacheTtl.thirtyMinutes
+    ),
     safetyIdentifier = "hashed-user",
     serviceTier = "priority",
     store = true
@@ -730,7 +733,8 @@ proc testStoreAndCurrentFieldsSerialization() =
   let parsed = fromJson(json, ChatCreateParams)
   doAssert not parsed.parallel_tool_calls
   doAssert parsed.prompt_cache_key == "cache-key"
-  doAssert parsed.prompt_cache_options.ttl == "30m"
+  doAssert parsed.prompt_cache_options.mode == PromptCacheMode.explicit
+  doAssert parsed.prompt_cache_options.ttl == PromptCacheTtl.thirtyMinutes
   doAssert parsed.store
 
 proc testToolCallResponseWithNullContent() =

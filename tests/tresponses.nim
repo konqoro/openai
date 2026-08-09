@@ -79,6 +79,7 @@ block request_scalar_defaults:
   doAssert not defaultBody.contains("\"temperature\":")
   doAssert not defaultBody.contains("\"top_logprobs\":")
   doAssert not defaultBody.contains("\"top_p\":")
+  doAssert not defaultBody.contains("\"prompt_cache_options\":")
 
   let explicit = responseCreate("gpt-5.6-luna", responseInputText("Hello"),
     background = true, parallelToolCalls = false, store = false,
@@ -90,6 +91,28 @@ block request_scalar_defaults:
   doAssert explicitBody.contains("\"temperature\":0.0")
   doAssert explicitBody.contains("\"top_logprobs\":5")
   doAssert explicitBody.contains("\"top_p\":0.9")
+
+  let cached = responseCreate("gpt-5.6-luna", responseInputText("Hello"),
+    promptCacheKey = "cache-key",
+    promptCacheOptions = ResponsePromptCacheOptions(
+      mode: PromptCacheMode.explicit,
+      ttl: PromptCacheTtl.thirtyMinutes
+    ))
+  let cachedBody = toJson(cached)
+  doAssert cachedBody.contains("\"prompt_cache_key\":\"cache-key\"")
+  doAssert cachedBody.contains(
+    "\"prompt_cache_options\":{\"mode\":\"explicit\",\"ttl\":\"30m\"}")
+  let decoded = fromJson(
+    """{"mode":"explicit","ttl":"30m"}""",
+    ResponsePromptCacheOptions
+  )
+  doAssert decoded.mode == PromptCacheMode.explicit
+  doAssert decoded.ttl == PromptCacheTtl.thirtyMinutes
+  doAssertRaises JsonParsingError:
+    discard fromJson(
+      """{"mode":"automatic","ttl":"30m"}""",
+      ResponsePromptCacheOptions
+    )
 
 block simple_text_request:
   let params = responseCreate(
@@ -274,11 +297,9 @@ block parse_and_access:
   doAssert parsed.output[1].`type` == ResponseOutputItemType.function_call
   doAssert firstText(parsed) == "{\"answer\":42}"
   doAssert allTextParts(parsed) == @["{\"answer\":42}"]
-  doAssert allTextParts(parsed, i = 1).len == 0
   doAssertRaises ValueError:
-    discard firstText(parsed, i = -1)
-  doAssertRaises ValueError:
-    discard firstText(parsed, i = 1)
+    discard outputItem(parsed, -1)
+  doAssert outputItem(parsed, 1).`type` == ResponseOutputItemType.function_call
   doAssert firstCallId(parsed) == "call_1"
   doAssert firstCallName(parsed) == "lookup"
   doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
@@ -321,10 +342,16 @@ block parse_and_access:
       )
     ]
   ))
-  doAssert firstText(parsed, i = 2) == "later"
-  doAssert allTextParts(parsed, i = 2) == @["", "later"]
-  firstText(parsed, i = 2) = "changed"
-  doAssert firstText(parsed, i = 2) == "changed"
+  doAssert firstText(parsed) == "{\"answer\":42,\"future\":true}"
+  doAssert allTextParts(parsed) ==
+    @["{\"answer\":42,\"future\":true}", "", "later"]
+  outputItem(parsed, 2).content[2].text = "changed"
+  doAssert outputItem(parsed, 2).content[2].text == "changed"
+
+  var heterogeneous = parsed
+  heterogeneous.output.delete(0)
+  doAssert firstText(heterogeneous) == "changed"
+  doAssert allTextParts(heterogeneous) == @["", "changed"]
 
   let futureItem = fromJson(
     """{"id":"future_1","type":"future_output_item","status":"completed"}""",
@@ -357,9 +384,8 @@ block missing_accessors:
   doAssertRaises ValueError:
     discard firstText(parsed)
   doAssertRaises ValueError:
-    discard firstText(parsed, i = 1)
-  doAssertRaises ValueError:
-    discard allTextParts(parsed)
+    discard outputItem(parsed, 0)
+  doAssert allTextParts(parsed).len == 0
   doAssertRaises ValueError:
     discard firstCallId(parsed)
   doAssertRaises ValueError:

@@ -382,6 +382,12 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
   `idOf`, `modelOf`, `firstText`, `allTextParts`, `functionCalls`,
   `firstCallId`, `firstCallName`, `firstCallArgs`, `parseFirstTextJson`,
   `parseFirstCallArgs`, `inputTokens`, `outputTokens`, `totalTokens`
+  - Chat accessors select a completion with `i = 0`.
+  - Responses text and function-call accessors scan the heterogeneous output list in response
+    order. Use `outputItem(response, outputIndex)` for explicit positional access.
+- Prompt caching:
+  `PromptCacheMode`, `PromptCacheTtl`, `ChatPromptCacheOptions`,
+  `ResponsePromptCacheOptions`
 - Embeddings:
   `embeddingInputText`, `embeddingInputTexts`, `embeddingInputTokens`,
   `embeddingCreate`, `embeddingRequest`, `embeddingAdd`, `embeddingParse`,
