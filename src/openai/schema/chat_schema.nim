@@ -21,13 +21,13 @@ type
 
   ChatReasoningEffort* = enum
     unspecified = ""
-    none = "none"
-    minimal = "minimal"
-    low = "low"
-    medium = "medium"
-    high = "high"
-    xhigh = "xhigh"
-    max = "max"
+    none
+    minimal
+    low
+    medium
+    high
+    xhigh
+    max
 
   ChatResponseFormatType* = enum
     text, json_object, json_schema

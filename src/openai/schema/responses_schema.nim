@@ -5,7 +5,7 @@
 import std/options
 export options
 import jsonx
-import jsonx/streams
+import jsonx/[parsejson, streams]
 
 type
   ResponseInputKind* = enum
@@ -34,6 +34,16 @@ type
     file_data*: string
     detail*: string
 
+  ResponseMessageContentKind* = enum
+    text, parts
+
+  ResponseMessageContent* = object
+    case kind*: ResponseMessageContentKind
+    of text:
+      text*: string
+    of parts:
+      parts*: seq[ResponseInputContent]
+
   ResponseTextFormatType* = enum
     text, json_schema
 
@@ -50,12 +60,12 @@ type
 
   ResponseReasoningEffort* = enum
     unspecified = ""
-    none = "none"
-    low = "low"
-    medium = "medium"
-    high = "high"
-    xhigh = "xhigh"
-    max = "max"
+    none
+    low
+    medium
+    high
+    xhigh
+    max
 
   ResponseReasoning* = object
     effort*: ResponseReasoningEffort
@@ -172,6 +182,17 @@ proc writeJson*(s: Stream; x: ResponseInput) =
   of ResponseInputKind.items:
     writeJson(s, x.items)
 
+proc readJson*(dst: var ResponseMessageContent; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
+  if p.tok == tkString:
+    dst = ResponseMessageContent(kind: ResponseMessageContentKind.text)
+    readJson(dst.text, p, unknownFields)
+  elif p.tok == tkBracketLe:
+    dst = ResponseMessageContent(kind: ResponseMessageContentKind.parts)
+    readJson(dst.parts, p, unknownFields)
+  else:
+    raiseParseErr(p, "string or array")
+
 proc writeJson*(s: Stream; x: ResponseInputContent) =
   var comma = false
   streams.write(s, "{")
@@ -196,6 +217,13 @@ proc writeJson*(s: Stream; x: ResponseInputContent) =
       if x.filename.len > 0:
         writeJsonField(s, "filename", x.filename)
   streams.write(s, "}")
+
+proc writeJson*(s: Stream; x: ResponseMessageContent) =
+  case x.kind
+  of ResponseMessageContentKind.text:
+    writeJson(s, x.text)
+  of ResponseMessageContentKind.parts:
+    writeJson(s, x.parts)
 
 proc writeJson*(s: Stream; x: ResponseTextFormat) =
   var comma = false

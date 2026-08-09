@@ -293,6 +293,8 @@ proc main() =
     url = "/v1/chat/completions"
   )
   echo line
+
+main()
 ```
 
 Create a batch from an uploaded input file, poll it by status, then read the

@@ -1,6 +1,7 @@
 import std/[assertions, strutils]
 import relay
 import jsonx
+import jsonx/parsejson
 import openai/responses
 
 const GoodResponse = """{
@@ -106,6 +107,44 @@ block simple_text_request:
   doAssert not body.contains("prompt_cache_retention")
   doAssert not body.contains("truncation")
   doAssert not body.contains("\"user\"")
+
+block message_content:
+  let text = responseContentText("Hello")
+  doAssert text.kind == ResponseMessageContentKind.text
+  doAssert text.text == "Hello"
+  doAssert toJson(text) == "\"Hello\""
+
+  let parts = responseContentParts(@[
+    responsePartText("What is shown?"),
+    responsePartImageUrl("https://example.com/image.png")
+  ])
+  doAssert parts.kind == ResponseMessageContentKind.parts
+  doAssert parts.parts.len == 2
+  doAssert toJson(parts) ==
+    """[{"type":"input_text","text":"What is shown?"},""" &
+    """{"type":"input_image","image_url":"https://example.com/image.png","detail":"auto"}]"""
+
+  let decodedText = fromJson("\"decoded\"", ResponseMessageContent)
+  doAssert decodedText.kind == ResponseMessageContentKind.text
+  doAssert decodedText.text == "decoded"
+  doAssertRaises JsonParsingError:
+    discard fromJson("null", ResponseMessageContent)
+
+  let decodedParts = fromJson(
+    """[{"type":"input_text","text":"decoded","future":true}]""",
+    ResponseMessageContent
+  )
+  doAssert decodedParts.kind == ResponseMessageContentKind.parts
+  doAssert decodedParts.parts[0].text == "decoded"
+  doAssertRaises JsonParsingError:
+    discard fromJson(
+      """[{"type":"input_text","text":"decoded","future":true}]""",
+      ResponseMessageContent,
+      unknownFields = ufReject
+    )
+
+  doAssert string(responseMessageText(ResponseInputRole.user, "Hello")) ==
+    """{"role":"user","content":"Hello"}"""
 
 block message_parts_and_tools:
   let message = responseMessageParts(ResponseInputRole.user, @[

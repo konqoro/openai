@@ -60,18 +60,39 @@ proc responsePartFileData*(data, filename: sink string): ResponseInputContent =
     filename: filename
   )
 
+proc responseContentText*(text: sink string): ResponseMessageContent =
+  ## Creates message content from text.
+  ResponseMessageContent(
+    kind: ResponseMessageContentKind.text,
+    text: text
+  )
+
+proc responseContentParts*(
+    parts: sink seq[ResponseInputContent]): ResponseMessageContent =
+  ## Creates message content from typed parts.
+  ResponseMessageContent(
+    kind: ResponseMessageContentKind.parts,
+    parts: parts
+  )
+
 type ResponseInputMessageWire = object
   role: ResponseInputRole
-  content: RawJson
+  content: ResponseMessageContent
 
 proc responseMessageText*(role: ResponseInputRole; text: sink string): RawJson =
   ## Creates a message input item with string content.
-  RawJson(toJson(ResponseInputMessageWire(role: role, content: RawJson(toJson(text)))))
+  RawJson(toJson(ResponseInputMessageWire(
+    role: role,
+    content: responseContentText(text)
+  )))
 
 proc responseMessageParts*(role: ResponseInputRole;
     parts: sink seq[ResponseInputContent]): RawJson =
   ## Creates a message input item with typed content parts.
-  RawJson(toJson(ResponseInputMessageWire(role: role, content: RawJson(toJson(parts)))))
+  RawJson(toJson(ResponseInputMessageWire(
+    role: role,
+    content: responseContentParts(parts)
+  )))
 
 type ResponseFunctionOutputWire = object
   `type`: string
