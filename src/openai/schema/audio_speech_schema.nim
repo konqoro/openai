@@ -20,7 +20,7 @@ type
   SpeechStreamFormat* = enum
     audio, sse
 
-  OpenAISpeechIn* = object
+  SpeechParams* = object
     model*: string
     input*: string
     voice*: SpeechVoice
@@ -45,7 +45,7 @@ proc writeJson*(s: Stream; x: SpeechVoice) =
     writeJson(s, x.id)
     streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: OpenAISpeechIn) =
+proc writeJson*(s: Stream; x: SpeechParams) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "model", x.model)

@@ -61,7 +61,7 @@ proc testEmbeddingRequest() =
     embeddingCreate(
       model = "Qwen/Qwen3-Embedding-0.6B",
       input = "hello",
-      encodingFormat = EmbeddingEncodingFormat.`float`
+      encodingFormat = EmbeddingFormat.`float`
     ),
     requestId = 42,
     timeoutMs = 7_000,
@@ -79,7 +79,7 @@ proc testEmbeddingRequest() =
     """{"model":"Qwen/Qwen3-Embedding-0.6B","input":"hello"}"""
 
 proc testEmbeddingEncodingFormatEnum() =
-  let params = embeddingCreate("m", "text", EmbeddingEncodingFormat.base64)
+  let params = embeddingCreate("m", "text", EmbeddingFormat.base64)
   doAssert toJson(params) ==
     """{"model":"m","input":"text","encoding_format":"base64"}"""
 
@@ -104,7 +104,7 @@ proc testEmbeddingBatchAdd() =
   doAssert batch[0].verb == hvPost
 
 proc testEmbeddingParseAndAccessors() =
-  var parsed: EmbeddingCreateResult
+  var parsed: EmbeddingResult
   doAssert embeddingParse(GoodResponse, parsed)
   doAssert outputItems(parsed) == 1
   doAssert modelOf(parsed) == "Qwen/Qwen3-Embedding-0.6B"
@@ -115,16 +115,16 @@ proc testEmbeddingParseAndAccessors() =
   expectValueError embedding(parsed, 1)
 
 proc testBase64EmbeddingParseAndAccessors() =
-  var parsed: EmbeddingCreateResult
+  var parsed: EmbeddingResult
   doAssert embeddingParse(Base64Response, parsed)
   doAssert outputItems(parsed) == 1
-  doAssert parsed.data[0].embedding.kind == EmbeddingContentKind.encoded
+  doAssert parsed.data[0].embedding.kind == EmbeddingValueKind.encoded
   doAssert embeddingBase64(parsed) == "AQID"
   expectValueError embedding(parsed)
   expectValueError embeddingBase64(parsed, 1)
 
 proc testEmbeddingParseFailure() =
-  var parsed: EmbeddingCreateResult
+  var parsed: EmbeddingResult
   doAssert not embeddingParse("{bad json", parsed)
 
 proc testUnknownFieldPolicy() =
@@ -132,7 +132,7 @@ proc testUnknownFieldPolicy() =
     "\"index\": 0,",
     "\"index\": 0, \"future_embedding_field\": true,"
   )
-  var parsed: EmbeddingCreateResult
+  var parsed: EmbeddingResult
   doAssert embeddingParse(futureResponse, parsed)
   doAssert not embeddingParse(futureResponse, parsed,
     unknownFields = ufReject)

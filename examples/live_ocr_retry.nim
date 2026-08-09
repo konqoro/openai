@@ -15,7 +15,7 @@ proc imageAsDataUrl(path: string): string =
   let imageBytes = readFile(path)
   result = "data:image/jpeg;base64," & encode(imageBytes)
 
-proc buildOcrParams(imageDataUrl: string): ChatCreateParams =
+proc buildOcrParams(imageDataUrl: string): ChatParams =
   chatCreate(
     model = ModelName,
     messages = @[
@@ -36,8 +36,8 @@ proc shouldRetry(item: RequestResult; attempt: int; maxAttempts: int): bool =
   let retryHttpStatus = item.error.kind == teNone and isRetryable(item.response.code)
   result = hasMoreAttempts and (retryTransport or retryHttpStatus)
 
-proc requestWithRetry(client: Relay; endpoint: OpenAIConfig; params: ChatCreateParams;
-    retryPolicy: RetryPolicy): ChatCreateResult =
+proc requestWithRetry(client: Relay; endpoint: OpenAIConfig; params: ChatParams;
+    retryPolicy: RetryPolicy): ChatResult =
   var rng = initRand(seed = epochTime().int64)
   let maxAttempts = max(1, retryPolicy.maxAttempts)
   for attempt in 1..maxAttempts:

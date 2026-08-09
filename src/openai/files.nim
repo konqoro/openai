@@ -11,9 +11,6 @@ const
   FilesPath = "/files"
   DefaultMultipartBoundary* = "openai-nim-batch"
 
-type
-  FileCreateResult* = FileObject
-
 proc fileUploadBody*(filename, purpose, content, boundary: string): string =
   result = "--" & boundary & "\r\n" &
     "Content-Disposition: form-data; name=\"purpose\"\r\n\r\n" &
@@ -86,35 +83,35 @@ proc fileDeleteRequest*(cfg: OpenAIConfig; fileId: string;
   request(cfg, hvDelete, cfg.url & FilesPath & "/" & fileId,
     requestId, timeoutMs, headers)
 
-proc fileParse*(body: string; dst: var FileObject;
+proc fileParse*(body: string; dst: var FileInfo;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(body, FileObject, unknownFields = unknownFields)
+    dst = fromJson(body, FileInfo, unknownFields = unknownFields)
     result = dst.id.len > 0
   except CatchableError:
     result = false
 
-proc fileListParse*(body: string; dst: var FileList;
+proc fileListParse*(body: string; dst: var FilePage;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(body, FileList, unknownFields = unknownFields)
+    dst = fromJson(body, FilePage, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc fileDeletedParse*(body: string; dst: var FileDeleted;
+proc fileDeletedParse*(body: string; dst: var DeletedFile;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(body, FileDeleted, unknownFields = unknownFields)
+    dst = fromJson(body, DeletedFile, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc idOf*(x: FileObject): lent string {.inline.} =
+proc idOf*(x: FileInfo): lent string {.inline.} =
   result = x.id
 
-proc idOf*(x: var FileObject): var string {.inline.} =
+proc idOf*(x: var FileInfo): var string {.inline.} =
   result = x.id
 
-proc expiresAt*(x: FileObject): int64 {.inline.} =
+proc expiresAt*(x: FileInfo): int64 {.inline.} =
   result = x.expires_at.get(0)

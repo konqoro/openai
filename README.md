@@ -79,7 +79,7 @@ Send with Relay directly:
 
 ```nim
 let item = client.makeRequest(chatRequest(cfg, params))
-var parsed: ChatCreateResult
+var parsed: ChatResult
 if item.error.kind == teNone and item.response.code == Http200 and
     chatParse(item.response.body, parsed):
   echo "model=", modelOf(parsed)
@@ -117,7 +117,7 @@ proc main() =
   defer: client.close()
 
   let item = client.makeRequest(responseRequest(cfg, params))
-  var parsed: ResponseCreateResult
+  var parsed: ResponseResult
   if item.error.kind == teNone and item.response.code == Http200 and
       responseParse(item.response.body, parsed):
     echo "model=", modelOf(parsed)
@@ -159,7 +159,7 @@ proc main() =
   while remaining > 0:
     var item: RequestResult
     if client.waitForResult(item):
-      var parsed: ChatCreateResult
+      var parsed: ChatResult
       if item.error.kind == teNone and item.response.code == Http200 and
           chatParse(item.response.body, parsed):
         echo item.response.request.requestId, ": ", firstText(parsed)
@@ -263,7 +263,7 @@ download, or delete files:
 
 ```nim
 let upload = fileUploadRequest(cfg, "input.jsonl", "batch", jsonlContent)
-var uploaded: FileObject
+var uploaded: FileInfo
 if fileParse(client.makeRequest(upload).response.body, uploaded):
   echo "file=", idOf(uploaded)
 
@@ -331,7 +331,7 @@ your application requires an exact schema:
 import jsonx
 import openai/responses
 
-var parsed: ResponseCreateResult
+var parsed: ResponseResult
 discard responseParse(body, parsed)
 discard responseParse(body, parsed, unknownFields = ufReject)
 ```
@@ -351,7 +351,7 @@ import relay
 import openai/chat
 
 proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
-    params: ChatCreateParams): ChatCreateResult =
+    params: ChatParams): ChatResult =
   let policy = initRetryPolicy(maxAttempts = 5)
   var rng = initRand(epochTime().int64)
   let maxAttempts = max(1, policy.maxAttempts)

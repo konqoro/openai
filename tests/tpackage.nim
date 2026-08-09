@@ -25,6 +25,6 @@ block package_entry:
   let response = responseCreate("m", responseInputText("hello"))
   doAssert response.model == "m"
 
-  var parsed: ChatCreateResult
+  var parsed: ChatResult
   doAssert chatParse("""{"id":"c","created":1,"model":"m","choices":[],"usage":{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0}}""", parsed)
   doAssert createdAt(parsed) == 1

@@ -93,7 +93,7 @@ proc testFileRequestBuilders() =
     "http://localhost:9000/v1/files/file-abc123"
 
 proc testFileParseAndAccessors() =
-  var file: FileObject
+  var file: FileInfo
   doAssert fileParse(FileResponse, file)
   doAssert idOf(file) == "file-abc123"
   doAssert file.purpose == FilePurpose.fine_tune
@@ -101,12 +101,12 @@ proc testFileParseAndAccessors() =
   doAssert expiresAt(file) == 0
   doAssert not fileParse("{}", file)
 
-  var list: FileList
+  var list: FilePage
   doAssert fileListParse(FileListResponse, list)
   doAssert list.data.len == 1
   doAssert not list.has_more
 
-  var deleted: FileDeleted
+  var deleted: DeletedFile
   doAssert fileDeletedParse(FileDeletedResponse, deleted)
   doAssert deleted.deleted
 
@@ -134,7 +134,7 @@ proc testUnknownFieldPolicy() =
     "\"status\": \"processed\"",
     "\"status\": \"processed\", \"future_file_field\": true"
   )
-  var file: FileObject
+  var file: FileInfo
   doAssert fileParse(futureFile, file)
   doAssert not fileParse(futureFile, file, unknownFields = ufReject)
 
@@ -142,7 +142,7 @@ proc testUnknownFieldPolicy() =
     "\"has_more\": false",
     "\"has_more\": false, \"future_list_field\": true"
   )
-  var list: FileList
+  var list: FilePage
   doAssert fileListParse(futureList, list)
   doAssert not fileListParse(futureList, list, unknownFields = ufReject)
 
@@ -150,7 +150,7 @@ proc testUnknownFieldPolicy() =
     "\"deleted\": true",
     "\"deleted\": true, \"future_deleted_field\": true"
   )
-  var deleted: FileDeleted
+  var deleted: DeletedFile
   doAssert fileDeletedParse(futureDeleted, deleted)
   doAssert not fileDeletedParse(futureDeleted, deleted,
     unknownFields = ufReject)

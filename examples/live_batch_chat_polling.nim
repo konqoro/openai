@@ -12,7 +12,7 @@ const
   MaxQueuedOrInFlight = 6
   RequestTimeoutMs = 30_000
 
-proc buildParams(prompt: string): ChatCreateParams =
+proc buildParams(prompt: string): ChatParams =
   chatCreate(
     model = ModelName,
     messages = @[chatUserMessageText(prompt)],
@@ -23,7 +23,7 @@ proc buildParams(prompt: string): ChatCreateParams =
   )
 
 proc printCompletion(item: RequestResult) =
-  var parsed: ChatCreateResult
+  var parsed: ChatResult
   discard chatParse(item.response.body, parsed)
   echo "completed id=", item.response.request.requestId,
     " status=", item.response.code,

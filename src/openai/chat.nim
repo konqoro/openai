@@ -10,22 +10,18 @@ export chat_schema
 
 const ChatCompletionsPath = "/chat/completions"
 
-type
-  ChatCreateParams* = OpenAIChatCompletionsIn
-  ChatCreateResult* = OpenAIChatCompletionOut
-
-proc chatPartText*(text: sink string): ChatCompletionContentPart =
+proc chatPartText*(text: sink string): ChatInputPart =
   ## Creates a text content part.
-  result = ChatCompletionContentPart(
-    `type`: ChatCompletionContentPartType.text,
+  result = ChatInputPart(
+    `type`: ChatInputPartType.text,
     text: text
   )
 
 proc chatPartImageUrl*(url: sink string;
-    detail = ChatImageDetail.auto): ChatCompletionContentPart =
+    detail = ChatImageDetail.auto): ChatInputPart =
   ## Creates an image content part backed by a URL or data URL.
-  result = ChatCompletionContentPart(
-    `type`: ChatCompletionContentPartType.image_url,
+  result = ChatInputPart(
+    `type`: ChatInputPartType.image_url,
     image_url: ChatImageUrl(
       url: url,
       detail: detail
@@ -33,27 +29,27 @@ proc chatPartImageUrl*(url: sink string;
   )
 
 proc chatPartInputAudio*(data: sink string;
-    format: ChatInputAudioFormat): ChatCompletionContentPart =
+    format: ChatAudioFormat): ChatInputPart =
   ## Creates an encoded audio content part.
-  result = ChatCompletionContentPart(
-    `type`: ChatCompletionContentPartType.input_audio,
+  result = ChatInputPart(
+    `type`: ChatInputPartType.input_audio,
     input_audio: ChatInputAudio(
       data: data,
       format: format
     )
   )
 
-proc chatContentText*(text: sink string): ChatCompletionMessageContent =
+proc chatContentText*(text: sink string): ChatInputContent =
   ## Creates message content from text.
-  result = ChatCompletionMessageContent(
-    kind: ChatCompletionInputContentKind.text,
+  result = ChatInputContent(
+    kind: ChatInputContentKind.text,
     text: text
   )
 
-proc chatContentParts*(parts: sink seq[ChatCompletionContentPart]): ChatCompletionMessageContent =
+proc chatContentParts*(parts: sink seq[ChatInputPart]): ChatInputContent =
   ## Creates message content from typed parts.
-  result = ChatCompletionMessageContent(
-    kind: ChatCompletionInputContentKind.parts,
+  result = ChatInputContent(
+    kind: ChatInputContentKind.parts,
     parts: parts
   )
 
@@ -81,7 +77,7 @@ proc chatUserMessageText*(text: sink string; name: sink string = ""): ChatMessag
     name: name
   )
 
-proc chatUserMessageParts*(parts: sink seq[ChatCompletionContentPart];
+proc chatUserMessageParts*(parts: sink seq[ChatInputPart];
     name: sink string = ""): ChatMessage =
   ## Creates a user message with typed content parts.
   result = ChatMessage(
@@ -99,7 +95,7 @@ proc chatAssistantMessageText*(text: sink string; name: sink string = ""): ChatM
   )
 
 proc chatAssistantMessageToolCalls*(
-    toolCalls: sink seq[ChatCompletionMessageToolCall]): ChatMessage =
+    toolCalls: sink seq[ChatToolCall]): ChatMessage =
   ## Creates an assistant message containing function calls.
   result = ChatMessage(
     role: ChatMessageRole.assistant,
@@ -156,23 +152,23 @@ proc chatFunctionTool*[TSchema](name: sink string; parametersSchema: TSchema;
   ## Creates a function tool without a description.
   chatFunctionTool(name, "", RawJson(toJson(parametersSchema)), strict)
 
-proc chatToolChoiceFunction*(name: sink string): ChatNamedToolChoice =
+proc chatToolChoiceFunction*(name: sink string): ChatToolChoice =
   ## Requires the model to call the named function tool.
-  ChatNamedToolChoice(
+  ChatToolChoice(
     `type`: ChatToolType.function,
     function: ChatNamedFunction(name: name)
   )
 
 let
-  chatFormatText* = ChatResponseFormat(`type`: ChatResponseFormatType.text)
-  chatFormatJsonObject* = ChatResponseFormat(`type`: ChatResponseFormatType.json_object)
+  chatFormatText* = ChatFormat(`type`: ChatFormatType.text)
+  chatFormatJsonObject* = ChatFormat(`type`: ChatFormatType.json_object)
 
 proc chatFormatJsonSchema*(name: sink string; schema: sink RawJson;
-    description: sink string = ""; strict = true): ChatResponseFormat =
+    description: sink string = ""; strict = true): ChatFormat =
   ## Creates a structured-output JSON Schema format.
-  result = ChatResponseFormat(
-    `type`: ChatResponseFormatType.json_schema,
-    json_schema: ChatResponseFormatJsonSchema(
+  result = ChatFormat(
+    `type`: ChatFormatType.json_schema,
+    json_schema: ChatJsonSchemaFormat(
       name: name,
       description: description,
       schema: schema,
@@ -181,7 +177,7 @@ proc chatFormatJsonSchema*(name: sink string; schema: sink RawJson;
   )
 
 proc chatFormatJsonSchema*[TSchema](name: sink string; schema: TSchema;
-    description: sink string = ""; strict = true): ChatResponseFormat =
+    description: sink string = ""; strict = true): ChatFormat =
   ## Creates a structured-output format from a serializable schema.
   chatFormatJsonSchema(name, RawJson(toJson(schema)), description, strict)
 
@@ -193,11 +189,11 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     toolChoice = RawJson(""); responseFormat = chatFormatText;
     parallelToolCalls = true; metadata: sink RawJson = RawJson("");
     promptCacheKey: sink string = "";
-    promptCacheOptions = ChatPromptCacheOptions();
+    promptCacheOptions = PromptCacheOptions();
     safetyIdentifier: sink string = ""; serviceTier: sink string = "";
-    store = false): ChatCreateParams =
+    store = false): ChatParams =
   ## Creates Chat Completions parameters without deprecated request fields.
-  result = ChatCreateParams(
+  result = ChatParams(
     model: model,
     messages: messages,
     stream: stream,
@@ -216,7 +212,7 @@ proc chatCreate*(model: sink string; messages: sink seq[ChatMessage];
     store: store
   )
 
-proc chatRequest*(cfg: OpenAIConfig; params: ChatCreateParams;
+proc chatRequest*(cfg: OpenAIConfig; params: ChatParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   ## Builds a Chat Completions HTTP request.
@@ -224,17 +220,17 @@ proc chatRequest*(cfg: OpenAIConfig; params: ChatCreateParams;
     requestId, timeoutMs, headers)
 
 proc chatAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
-    params: ChatCreateParams; requestId = 0'i64; timeoutMs = 0;
+    params: ChatParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
   ## Adds a Chat Completions HTTP request to a Relay batch.
   requestAdd(batch, cfg, hvPost, cfg.url & ChatCompletionsPath, params,
     requestId, timeoutMs, headers)
 
-proc chatParse*(body: string; dst: var ChatCreateResult;
+proc chatParse*(body: string; dst: var ChatResult;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   ## Parses a non-streaming Chat Completions result.
   try:
-    dst = fromJson(body, ChatCreateResult, unknownFields = unknownFields)
+    dst = fromJson(body, ChatResult, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
@@ -256,7 +252,7 @@ proc ensureChoiceIndex(choiceCount, i: int) {.inline.} =
   if i < 0 or i >= choiceCount:
     raiseInvalidChoiceIndex(i, choiceCount)
 
-proc firstNonEmptyTextPartIndex(content: ChatCompletionAssistantContent; i: int): int =
+proc firstNonEmptyTextPartIndex(content: ChatAssistantContent; i: int): int =
   if content.parts.len == 0:
     raiseNoTextPartsAtChoice(i)
   result = 0
@@ -265,66 +261,66 @@ proc firstNonEmptyTextPartIndex(content: ChatCompletionAssistantContent; i: int)
       result = partIdx
       return result
 
-proc idOf*(x: ChatCreateResult): lent string {.inline.} =
+proc idOf*(x: ChatResult): lent string {.inline.} =
   result = x.id
 
-proc idOf*(x: var ChatCreateResult): var string {.inline.} =
+proc idOf*(x: var ChatResult): var string {.inline.} =
   result = x.id
 
-proc modelOf*(x: ChatCreateResult): lent string {.inline.} =
+proc modelOf*(x: ChatResult): lent string {.inline.} =
   result = x.model
 
-proc modelOf*(x: var ChatCreateResult): var string {.inline.} =
+proc modelOf*(x: var ChatResult): var string {.inline.} =
   result = x.model
 
-proc createdAt*(x: ChatCreateResult): int64 {.inline.} =
+proc createdAt*(x: ChatResult): int64 {.inline.} =
   result = x.created
 
-proc inputTokens*(x: ChatCreateResult): int {.inline.} =
+proc inputTokens*(x: ChatResult): int {.inline.} =
   result = x.usage.prompt_tokens
 
-proc outputTokens*(x: ChatCreateResult): int {.inline.} =
+proc outputTokens*(x: ChatResult): int {.inline.} =
   result = x.usage.completion_tokens
 
-proc cachedInputTokens*(x: ChatCreateResult): int {.inline.} =
+proc cachedInputTokens*(x: ChatResult): int {.inline.} =
   result = x.usage.prompt_tokens_details.cached_tokens
 
-proc reasoningTokens*(x: ChatCreateResult): int {.inline.} =
+proc reasoningTokens*(x: ChatResult): int {.inline.} =
   result = x.usage.completion_tokens_details.reasoning_tokens
 
-proc totalTokens*(x: ChatCreateResult): int {.inline.} =
+proc totalTokens*(x: ChatResult): int {.inline.} =
   result = x.usage.total_tokens
 
-proc choices*(x: ChatCreateResult): int {.inline.} =
+proc choices*(x: ChatResult): int {.inline.} =
   result = x.choices.len
 
-proc finish*(x: ChatCreateResult; i = 0): ChatFinishReason {.inline.} =
+proc finish*(x: ChatResult; i = 0): ChatFinishReason {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   result = x.choices[i].finish_reason
 
-proc firstText*(x: ChatCreateResult; i = 0): lent string =
+proc firstText*(x: ChatResult; i = 0): lent string =
   ensureChoiceIndex(x.choices.len, i)
   case x.choices[i].message.content.kind
-  of ChatCompletionAssistantContentKind.none:
+  of ChatAssistantContentKind.none:
     raiseAccessorValueError("choice index " & $i & " has no content")
-  of ChatCompletionAssistantContentKind.text:
+  of ChatAssistantContentKind.text:
     result = x.choices[i].message.content.text
-  of ChatCompletionAssistantContentKind.parts:
+  of ChatAssistantContentKind.parts:
     let partIdx = firstNonEmptyTextPartIndex(x.choices[i].message.content, i)
     result = x.choices[i].message.content.parts[partIdx].text
 
-proc firstText*(x: var ChatCreateResult; i = 0): var string =
+proc firstText*(x: var ChatResult; i = 0): var string =
   ensureChoiceIndex(x.choices.len, i)
   case x.choices[i].message.content.kind
-  of ChatCompletionAssistantContentKind.none:
+  of ChatAssistantContentKind.none:
     raiseAccessorValueError("choice index " & $i & " has no content")
-  of ChatCompletionAssistantContentKind.text:
+  of ChatAssistantContentKind.text:
     result = x.choices[i].message.content.text
-  of ChatCompletionAssistantContentKind.parts:
+  of ChatAssistantContentKind.parts:
     let partIdx = firstNonEmptyTextPartIndex(x.choices[i].message.content, i)
     result = x.choices[i].message.content.parts[partIdx].text
 
-proc parseFirstTextJson*[T](x: ChatCreateResult; dst: var T; i = 0;
+proc parseFirstTextJson*[T](x: ChatResult; dst: var T; i = 0;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
     dst = fromJson(x.firstText(i), T, unknownFields = unknownFields)
@@ -332,64 +328,64 @@ proc parseFirstTextJson*[T](x: ChatCreateResult; dst: var T; i = 0;
   except CatchableError:
     result = false
 
-proc allTextParts*(x: ChatCreateResult; i = 0): seq[string] =
+proc allTextParts*(x: ChatResult; i = 0): seq[string] =
   result = @[]
   ensureChoiceIndex(x.choices.len, i)
-  if x.choices[i].message.content.kind == ChatCompletionAssistantContentKind.parts:
+  if x.choices[i].message.content.kind == ChatAssistantContentKind.parts:
     for part in x.choices[i].message.content.parts:
       result.add(part.text)
 
-proc functionCalls*(x: ChatCreateResult;
-    i = 0): lent seq[ChatCompletionMessageToolCall] {.inline.} =
+proc functionCalls*(x: ChatResult;
+    i = 0): lent seq[ChatToolCall] {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   result = x.choices[i].message.tool_calls
 
-proc functionCalls*(x: var ChatCreateResult;
-    i = 0): var seq[ChatCompletionMessageToolCall] {.inline.} =
+proc functionCalls*(x: var ChatResult;
+    i = 0): var seq[ChatToolCall] {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   result = x.choices[i].message.tool_calls
 
-proc hasFunctionCalls*(x: ChatCreateResult; i = 0): bool =
+proc hasFunctionCalls*(x: ChatResult; i = 0): bool =
   ensureChoiceIndex(x.choices.len, i)
   result = x.choices[i].message.tool_calls.len > 0
 
-proc firstCallId*(x: ChatCreateResult; i = 0): lent string {.inline.} =
+proc firstCallId*(x: ChatResult; i = 0): lent string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].id
 
-proc firstCallId*(x: var ChatCreateResult; i = 0): var string {.inline.} =
+proc firstCallId*(x: var ChatResult; i = 0): var string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].id
 
-proc firstCallName*(x: ChatCreateResult; i = 0): lent string {.inline.} =
+proc firstCallName*(x: ChatResult; i = 0): lent string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].function.name
 
-proc firstCallName*(x: var ChatCreateResult; i = 0): var string {.inline.} =
+proc firstCallName*(x: var ChatResult; i = 0): var string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].function.name
 
-proc firstCallArgs*(x: ChatCreateResult; i = 0): lent string {.inline.} =
+proc firstCallArgs*(x: ChatResult; i = 0): lent string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].function.arguments
 
-proc firstCallArgs*(x: var ChatCreateResult; i = 0): var string {.inline.} =
+proc firstCallArgs*(x: var ChatResult; i = 0): var string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].function.arguments
 
-proc parseFirstCallArgs*[T](x: ChatCreateResult; dst: var T; i = 0;
+proc parseFirstCallArgs*[T](x: ChatResult; dst: var T; i = 0;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
     dst = fromJson(x.firstCallArgs(i), T, unknownFields = unknownFields)

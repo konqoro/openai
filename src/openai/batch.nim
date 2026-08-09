@@ -13,14 +13,11 @@ const
   BatchesPath = "/batches"
   BatchCompletionWindow* = "24h"
 
-type
-  BatchCreateResult* = Batch
-
 proc batchCreate*(inputFileId, endpoint: sink string;
     completionWindow = BatchCompletionWindow;
     metadata: sink RawJson = RawJson("");
-    outputExpiresAfter = OutputExpiresAfter()): BatchCreateParams {.inline.} =
-  result = BatchCreateParams(
+    outputExpiresAfter = BatchOutputExpiry()): BatchParams {.inline.} =
+  result = BatchParams(
     input_file_id: inputFileId,
     endpoint: endpoint,
     completion_window: completionWindow,
@@ -29,10 +26,10 @@ proc batchCreate*(inputFileId, endpoint: sink string;
   )
 
 proc batchOutputExpiresAfter*(seconds: int;
-    anchor: sink string = "created_at"): OutputExpiresAfter {.inline.} =
-  OutputExpiresAfter(anchor: anchor, seconds: seconds)
+    anchor: sink string = "created_at"): BatchOutputExpiry {.inline.} =
+  BatchOutputExpiry(anchor: anchor, seconds: seconds)
 
-proc batchCreateRequest*(cfg: OpenAIConfig; params: BatchCreateParams;
+proc batchCreateRequest*(cfg: OpenAIConfig; params: BatchParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   request(cfg, hvPost, cfg.url & BatchesPath, params, requestId, timeoutMs, headers)
@@ -146,7 +143,7 @@ proc cancelledAt*(x: Batch): int64 {.inline.} =
   result = x.cancelled_at.get(0)
 
 proc errorCount*(x: Batch): int {.inline.} =
-  result = x.errors.get(BatchErrors()).data.len
+  result = x.errors.get(BatchErrorList()).data.len
 
 proc raiseBatchAccessorError(message: string) {.noinline, noreturn.} =
   raise newException(ValueError, message)

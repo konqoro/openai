@@ -27,8 +27,8 @@ contract materially clearer. Call out any such change in the handoff.
   aliasing, or shared lifetime is genuinely part of the contract.
 - Give semantic values named public types. Do not introduce private `*Wire` objects merely to get a
   desired JSON shape when the public schema type can represent that shape directly.
-- A capability module normally aliases its principal schema types as `<Capability>CreateParams` and
-  `<Capability>CreateResult`.
+- Schema types are the public request and result types directly: use concise names such as
+  `ChatParams`, `ChatResult`, `ResponseParams`, and `ResponseResult`. Do not add type aliases.
 - Keep the operation vocabulary uniform across capabilities:
   - `<capability>Create` constructs parameters.
   - `<capability>Request` creates a Relay request.

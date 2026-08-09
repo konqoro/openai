@@ -21,14 +21,14 @@ type
     of items:
       items*: seq[RawJson]
 
-  ResponseInputRole* = enum
+  ResponseRole* = enum
     system, developer, user, assistant
 
-  ResponseInputContentType* = enum
+  ResponsePartType* = enum
     input_text, input_image, input_file
 
-  ResponseInputContent* = object
-    `type`*: ResponseInputContentType
+  ResponsePart* = object
+    `type`*: ResponsePartType
     text*: string
     image_url*: string
     file_id*: string
@@ -45,10 +45,10 @@ type
     of text:
       text*: string
     of parts:
-      parts*: seq[ResponseInputContent]
+      parts*: seq[ResponsePart]
 
-  ResponseInputMessage* = object
-    role*: ResponseInputRole
+  ResponseMessage* = object
+    role*: ResponseRole
     content*: ResponseContent
 
   ResponseFunctionOutputType* = enum
@@ -69,22 +69,22 @@ type
     parameters*: RawJson
     strict*: bool
 
-  ResponseNamedToolChoice* = object
+  ResponseToolChoice* = object
     `type`*: ResponseToolType
     name*: string
 
-  ResponseTextFormatType* = enum
+  ResponseFormatType* = enum
     text, json_schema
 
-  ResponseTextFormat* = object
-    `type`*: ResponseTextFormatType
+  ResponseFormat* = object
+    `type`*: ResponseFormatType
     name*: string
     description*: string
     schema*: RawJson
     strict*: bool
 
   ResponseTextConfig* = object
-    format*: ResponseTextFormat
+    format*: ResponseFormat
     verbosity*: string
 
   ResponseReasoningEffort* = enum
@@ -102,11 +102,7 @@ type
     mode*: string
     context*: string
 
-  ResponsePromptCacheOptions* = object
-    mode*: PromptCacheMode
-    ttl*: PromptCacheTtl
-
-  OpenAIResponseIn* = object
+  ResponseParams* = object
     model*: string
     input*: ResponseInput
     background*: bool
@@ -122,7 +118,7 @@ type
     previous_response_id*: string
     prompt*: RawJson
     prompt_cache_key*: string
-    prompt_cache_options*: ResponsePromptCacheOptions
+    prompt_cache_options*: PromptCacheOptions
     reasoning*: ResponseReasoning
     safety_identifier*: string
     service_tier*: string
@@ -140,51 +136,51 @@ type
     code*: string
     message*: string
 
-  ResponseIncompleteDetails* = object
+  ResponseIncomplete* = object
     reason*: string
 
-  ResponseInputTokensDetails* = object
+  ResponseInputTokenDetails* = object
     cached_tokens*: int
     cache_write_tokens*: int
 
-  ResponseOutputTokensDetails* = object
+  ResponseOutputTokenDetails* = object
     reasoning_tokens*: int
 
   ResponseUsage* = object
     input_tokens*: int
-    input_tokens_details*: ResponseInputTokensDetails
+    input_tokens_details*: ResponseInputTokenDetails
     output_tokens*: int
-    output_tokens_details*: ResponseOutputTokensDetails
+    output_tokens_details*: ResponseOutputTokenDetails
     total_tokens*: int
 
-  ResponseOutputContentType* {.pure.} = enum
+  ResponseOutputPartType* {.pure.} = enum
     unknown = ""
     output_text
     refusal
 
-  ResponseOutputContent* = object
-    `type`*: ResponseOutputContentType
+  ResponseOutputPart* = object
+    `type`*: ResponseOutputPartType
     text*: string
     refusal*: string
     annotations*: seq[RawJson]
     logprobs*: seq[RawJson]
 
-  ResponseOutputItemType* {.pure.} = enum
+  ResponseOutputKind* {.pure.} = enum
     unknown = ""
     message
     function_call
 
-  ResponseOutputItem* = object
+  ResponseOutput* = object
     id*: string
-    `type`*: ResponseOutputItemType
+    `type`*: ResponseOutputKind
     status*: string
     role*: string
-    content*: seq[ResponseOutputContent]
+    content*: seq[ResponseOutputPart]
     call_id*: string
     name*: string
     arguments*: string
 
-  OpenAIResponseOut* = object
+  ResponseResult* = object
     id*: string
     `object`*: string
     created_at*: float
@@ -192,9 +188,9 @@ type
     background*: bool
     status*: string
     error*: Option[ResponseError]
-    incomplete_details*: Option[ResponseIncompleteDetails]
+    incomplete_details*: Option[ResponseIncomplete]
     model*: string
-    output*: seq[ResponseOutputItem]
+    output*: seq[ResponseOutput]
     previous_response_id*: string
     service_tier*: string
     usage*: Option[ResponseUsage]
@@ -231,13 +227,13 @@ proc readOutputType[T: enum](dst: var T; p: var JsonParser; unknown: T) =
   except ValueError:
     dst = unknown
 
-proc readJson*(dst: var ResponseOutputContentType; p: var JsonParser;
+proc readJson*(dst: var ResponseOutputPartType; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
-  readOutputType(dst, p, ResponseOutputContentType.unknown)
+  readOutputType(dst, p, ResponseOutputPartType.unknown)
 
-proc readJson*(dst: var ResponseOutputItemType; p: var JsonParser;
+proc readJson*(dst: var ResponseOutputKind; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
-  readOutputType(dst, p, ResponseOutputItemType.unknown)
+  readOutputType(dst, p, ResponseOutputKind.unknown)
 
 proc readJson*(dst: var ResponseContent; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
@@ -250,21 +246,21 @@ proc readJson*(dst: var ResponseContent; p: var JsonParser;
   else:
     raiseParseErr(p, "string or array")
 
-proc writeJson*(s: Stream; x: ResponseInputContent) =
+proc writeJson*(s: Stream; x: ResponsePart) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "type", x.`type`)
   case x.`type`
-  of ResponseInputContentType.input_text:
+  of ResponsePartType.input_text:
     writeJsonField(s, "text", x.text)
-  of ResponseInputContentType.input_image:
+  of ResponsePartType.input_image:
     if x.image_url.len > 0:
       writeJsonField(s, "image_url", x.image_url)
     else:
       writeJsonField(s, "file_id", x.file_id)
     if x.detail.len > 0:
       writeJsonField(s, "detail", x.detail)
-  of ResponseInputContentType.input_file:
+  of ResponsePartType.input_file:
     if x.file_id.len > 0:
       writeJsonField(s, "file_id", x.file_id)
     elif x.file_url.len > 0:
@@ -296,11 +292,11 @@ proc writeJson*(s: Stream; x: ResponseFunctionTool) =
   writeJsonField(s, "strict", x.strict)
   streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: ResponseTextFormat) =
+proc writeJson*(s: Stream; x: ResponseFormat) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "type", x.`type`)
-  if x.`type` == ResponseTextFormatType.json_schema:
+  if x.`type` == ResponseFormatType.json_schema:
     writeJsonField(s, "name", x.name)
     if x.description.len > 0:
       writeJsonField(s, "description", x.description)
@@ -332,16 +328,7 @@ proc writeJson*(s: Stream; x: ResponseReasoning) =
     writeJsonField(s, "context", x.context)
   streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: ResponsePromptCacheOptions) =
-  var comma = false
-  streams.write(s, "{")
-  if x.mode != PromptCacheMode.unspecified:
-    writeJsonField(s, "mode", x.mode)
-  if x.ttl != PromptCacheTtl.unspecified:
-    writeJsonField(s, "ttl", x.ttl)
-  streams.write(s, "}")
-
-proc hasPromptCacheOptions(x: ResponsePromptCacheOptions): bool {.inline.} =
+proc hasPromptCacheOptions(x: PromptCacheOptions): bool {.inline.} =
   x.mode != PromptCacheMode.unspecified or
     x.ttl != PromptCacheTtl.unspecified
 
@@ -350,9 +337,9 @@ proc hasReasoning(x: ResponseReasoning): bool {.inline.} =
     x.mode.len > 0 or x.context.len > 0
 
 proc hasTextConfig(x: ResponseTextConfig): bool {.inline.} =
-  x.format.`type` == ResponseTextFormatType.json_schema or x.verbosity.len > 0
+  x.format.`type` == ResponseFormatType.json_schema or x.verbosity.len > 0
 
-proc writeJson*(s: Stream; x: OpenAIResponseIn) =
+proc writeJson*(s: Stream; x: ResponseParams) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "model", x.model)

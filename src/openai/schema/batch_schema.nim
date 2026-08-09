@@ -8,22 +8,22 @@ type
     validating, failed, in_progress, finalizing, completed, expired,
     cancelling, cancelled
 
-  BatchRequestCounts* = object
+  BatchCounts* = object
     total*: int
     completed*: int
     failed*: int
 
-  BatchUsageInputDetails* = object
+  BatchInputTokenDetails* = object
     cached_tokens*: int
 
-  BatchUsageOutputDetails* = object
+  BatchOutputTokenDetails* = object
     reasoning_tokens*: int
 
   BatchUsage* = object
     input_tokens*: int
-    input_tokens_details*: BatchUsageInputDetails
+    input_tokens_details*: BatchInputTokenDetails
     output_tokens*: int
-    output_tokens_details*: BatchUsageOutputDetails
+    output_tokens_details*: BatchOutputTokenDetails
     total_tokens*: int
 
   BatchError* = object
@@ -32,7 +32,7 @@ type
     message*: string
     param*: Option[string]
 
-  BatchErrors* = object
+  BatchErrorList* = object
     `object`*: string
     data*: seq[BatchError]
 
@@ -48,7 +48,7 @@ type
     cancelling_at*: Option[int64]
     completed_at*: Option[int64]
     error_file_id*: Option[string]
-    errors*: Option[BatchErrors]
+    errors*: Option[BatchErrorList]
     expired_at*: Option[int64]
     expires_at*: Option[int64]
     failed_at*: Option[int64]
@@ -57,7 +57,7 @@ type
     metadata*: Option[RawJson]
     model*: Option[string]
     output_file_id*: Option[string]
-    request_counts*: Option[BatchRequestCounts]
+    request_counts*: Option[BatchCounts]
     usage*: Option[BatchUsage]
 
   BatchList* = object
@@ -67,16 +67,16 @@ type
     last_id*: string
     has_more*: bool
 
-  OutputExpiresAfter* = object
+  BatchOutputExpiry* = object
     anchor*: string
     seconds*: int
 
-  BatchCreateParams* = object
+  BatchParams* = object
     input_file_id*: string
     endpoint*: string
     completion_window*: string
     metadata*: RawJson
-    output_expires_after*: OutputExpiresAfter
+    output_expires_after*: BatchOutputExpiry
 
   BatchInputLine* = object
     custom_id*: string
@@ -106,7 +106,7 @@ template writeJsonField(s: Stream; name: string; value: untyped) =
   streams.write(s, ":")
   writeJson(s, value)
 
-proc writeJson*(s: Stream; x: BatchCreateParams) =
+proc writeJson*(s: Stream; x: BatchParams) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "input_file_id", x.input_file_id)

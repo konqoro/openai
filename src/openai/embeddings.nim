@@ -10,10 +10,6 @@ export embeddings_schema
 
 const EmbeddingsPath = "/embeddings"
 
-type
-  EmbeddingCreateParams* = OpenAIEmbeddingIn
-  EmbeddingCreateResult* = OpenAIEmbeddingOut
-
 proc embeddingInputText*(text: sink string): EmbeddingInput =
   ## Creates a single text input.
   EmbeddingInput(kind: EmbeddingInputKind.text, text: text)
@@ -31,10 +27,10 @@ proc embeddingInputTokenArrays*(tokenArrays: sink seq[seq[int]]): EmbeddingInput
   EmbeddingInput(kind: EmbeddingInputKind.tokenArrays, token_arrays: tokenArrays)
 
 proc embeddingCreate*(model: sink string; input: sink EmbeddingInput;
-    encodingFormat = EmbeddingEncodingFormat.float; dimensions = 0;
-    user: sink string = ""): EmbeddingCreateParams =
+    encodingFormat = EmbeddingFormat.float; dimensions = 0;
+    user: sink string = ""): EmbeddingParams =
   ## Creates parameters for `POST /embeddings`.
-  EmbeddingCreateParams(
+  EmbeddingParams(
     model: model,
     input: input,
     encoding_format: encodingFormat,
@@ -43,34 +39,34 @@ proc embeddingCreate*(model: sink string; input: sink EmbeddingInput;
   )
 
 proc embeddingCreate*(model, input: sink string;
-    encodingFormat = EmbeddingEncodingFormat.float; dimensions = 0;
-    user: sink string = ""): EmbeddingCreateParams =
+    encodingFormat = EmbeddingFormat.float; dimensions = 0;
+    user: sink string = ""): EmbeddingParams =
   ## Creates parameters for a single text input.
   embeddingCreate(model, embeddingInputText(input), encodingFormat,
     dimensions, user)
 
-proc embeddingRequest*(cfg: OpenAIConfig; params: EmbeddingCreateParams;
+proc embeddingRequest*(cfg: OpenAIConfig; params: EmbeddingParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   request(cfg, hvPost, cfg.url & EmbeddingsPath, params,
     requestId, timeoutMs, headers)
 
 proc embeddingAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
-    params: EmbeddingCreateParams; requestId = 0'i64; timeoutMs = 0;
+    params: EmbeddingParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
   requestAdd(batch, cfg, hvPost, cfg.url & EmbeddingsPath, params,
     requestId, timeoutMs, headers)
 
-proc embeddingParse*(body: string; dst: var EmbeddingCreateResult;
+proc embeddingParse*(body: string; dst: var EmbeddingResult;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   try:
-    dst = fromJson(body, EmbeddingCreateResult,
+    dst = fromJson(body, EmbeddingResult,
       unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc outputItems*(x: EmbeddingCreateResult): int {.inline.} =
+proc outputItems*(x: EmbeddingResult): int {.inline.} =
   result = x.data.len
 
 proc raiseAccessorValueError(message: string) {.noinline, noreturn.} =
@@ -81,44 +77,44 @@ proc ensureEmbeddingIndex(embeddingCount, i: int) {.inline.} =
     raiseAccessorValueError("embedding index " & $i &
       " out of range for " & $embeddingCount & " embeddings")
 
-proc ensureFloatEmbedding(x: EmbeddingContent; i: int) {.inline.} =
-  if x.kind != EmbeddingContentKind.values:
+proc ensureFloatEmbedding(x: EmbeddingValue; i: int) {.inline.} =
+  if x.kind != EmbeddingValueKind.values:
     raiseAccessorValueError("embedding " & $i &
       " uses base64 encoding; request float encoding or use embeddingBase64()")
 
-proc ensureBase64Embedding(x: EmbeddingContent; i: int) {.inline.} =
-  if x.kind != EmbeddingContentKind.encoded:
+proc ensureBase64Embedding(x: EmbeddingValue; i: int) {.inline.} =
+  if x.kind != EmbeddingValueKind.encoded:
     raiseAccessorValueError("embedding " & $i &
       " uses float encoding; use embedding() for numeric vectors")
 
-proc embedding*(x: EmbeddingCreateResult; i = 0): lent seq[float32] {.inline.} =
+proc embedding*(x: EmbeddingResult; i = 0): lent seq[float32] {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureFloatEmbedding(x.data[i].embedding, i)
   result = x.data[i].embedding.values
 
-proc embedding*(x: var EmbeddingCreateResult; i = 0): var seq[float32] {.inline.} =
+proc embedding*(x: var EmbeddingResult; i = 0): var seq[float32] {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureFloatEmbedding(x.data[i].embedding, i)
   result = x.data[i].embedding.values
 
-proc embeddingBase64*(x: EmbeddingCreateResult; i = 0): lent string {.inline.} =
+proc embeddingBase64*(x: EmbeddingResult; i = 0): lent string {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureBase64Embedding(x.data[i].embedding, i)
   result = x.data[i].embedding.encoded
 
-proc embeddingBase64*(x: var EmbeddingCreateResult; i = 0): var string {.inline.} =
+proc embeddingBase64*(x: var EmbeddingResult; i = 0): var string {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureBase64Embedding(x.data[i].embedding, i)
   result = x.data[i].embedding.encoded
 
-proc modelOf*(x: EmbeddingCreateResult): lent string {.inline.} =
+proc modelOf*(x: EmbeddingResult): lent string {.inline.} =
   result = x.model
 
-proc modelOf*(x: var EmbeddingCreateResult): var string {.inline.} =
+proc modelOf*(x: var EmbeddingResult): var string {.inline.} =
   result = x.model
 
-proc inputTokens*(x: EmbeddingCreateResult): int {.inline.} =
+proc inputTokens*(x: EmbeddingResult): int {.inline.} =
   result = x.usage.prompt_tokens
 
-proc totalTokens*(x: EmbeddingCreateResult): int {.inline.} =
+proc totalTokens*(x: EmbeddingResult): int {.inline.} =
   result = x.usage.total_tokens

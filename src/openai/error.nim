@@ -6,14 +6,14 @@ import jsonx
 import jsonx/parsejson
 
 type
-  OpenAIError* = object
+  ApiError* = object
     message*: string
     `type`*: string
     param*: Option[string]
     code*: Option[string]
 
-  OpenAIErrorResponse* = object
-    error*: OpenAIError
+  ErrorResponse* = object
+    error*: ApiError
 
 template readObjectFields(p: var JsonParser; body: untyped) =
   eat(p, tkCurlyLe)
@@ -30,7 +30,7 @@ template readObjectFields(p: var JsonParser; body: untyped) =
       raiseParseErr(p, "comma or closing brace")
   eat(p, tkCurlyRi)
 
-proc readJson*(dst: var OpenAIErrorResponse; p: var JsonParser;
+proc readJson*(dst: var ErrorResponse; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
   var foundError = false
   readObjectFields(p):
@@ -46,16 +46,16 @@ proc readJson*(dst: var OpenAIErrorResponse; p: var JsonParser;
   if not foundError:
     raiseParseErr(p, "error field")
 
-proc errorParse*(body: string; dst: var OpenAIErrorResponse;
+proc errorParse*(body: string; dst: var ErrorResponse;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
   ## Parses an error envelope using the selected unknown-field policy.
   try:
-    dst = fromJson(body, OpenAIErrorResponse,
+    dst = fromJson(body, ErrorResponse,
       unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc errorOf*(x: OpenAIErrorResponse): lent OpenAIError =
+proc errorOf*(x: ErrorResponse): lent ApiError =
   ## Returns the parsed API error.
   result = x.error

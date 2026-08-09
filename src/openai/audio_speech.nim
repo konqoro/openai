@@ -9,9 +9,6 @@ export audio_speech_schema
 
 const AudioSpeechPath = "/audio/speech"
 
-type
-  SpeechCreateParams* = OpenAISpeechIn
-
 proc speechVoice*(name: sink string): SpeechVoice =
   ## Creates a built-in or provider-defined named voice.
   SpeechVoice(kind: SpeechVoiceKind.named, name: name)
@@ -23,9 +20,9 @@ proc speechCustomVoice*(id: sink string): SpeechVoice =
 proc speechCreate*(model, input: sink string; voice: sink SpeechVoice;
     instructions: sink string = "";
     responseFormat = SpeechResponseFormat.mp3; speed = 1.0;
-    streamFormat = SpeechStreamFormat.audio): SpeechCreateParams =
+    streamFormat = SpeechStreamFormat.audio): SpeechParams =
   ## Creates parameters for `POST /audio/speech`.
-  SpeechCreateParams(
+  SpeechParams(
     model: model,
     input: input,
     voice: voice,
@@ -38,19 +35,19 @@ proc speechCreate*(model, input: sink string; voice: sink SpeechVoice;
 proc speechCreate*(model, input, voice: sink string;
     instructions: sink string = "";
     responseFormat = SpeechResponseFormat.mp3; speed = 1.0;
-    streamFormat = SpeechStreamFormat.audio): SpeechCreateParams =
+    streamFormat = SpeechStreamFormat.audio): SpeechParams =
   ## Creates parameters using a named voice.
   speechCreate(model, input, speechVoice(voice), instructions,
     responseFormat, speed, streamFormat)
 
-proc speechRequest*(cfg: OpenAIConfig; params: SpeechCreateParams;
+proc speechRequest*(cfg: OpenAIConfig; params: SpeechParams;
     requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()): RequestSpec =
   request(cfg, hvPost, cfg.url & AudioSpeechPath, params,
     requestId, timeoutMs, headers)
 
 proc speechAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
-    params: SpeechCreateParams; requestId = 0'i64; timeoutMs = 0;
+    params: SpeechParams; requestId = 0'i64; timeoutMs = 0;
     headers: sink HttpHeaders = emptyHttpHeaders()) =
   requestAdd(batch, cfg, hvPost, cfg.url & AudioSpeechPath, params,
     requestId, timeoutMs, headers)

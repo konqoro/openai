@@ -94,7 +94,7 @@ block request_scalar_defaults:
 
   let cached = responseCreate("gpt-5.6-luna", responseInputText("Hello"),
     promptCacheKey = "cache-key",
-    promptCacheOptions = ResponsePromptCacheOptions(
+    promptCacheOptions = PromptCacheOptions(
       mode: PromptCacheMode.explicit,
       ttl: PromptCacheTtl.thirtyMinutes
     ))
@@ -104,14 +104,14 @@ block request_scalar_defaults:
     "\"prompt_cache_options\":{\"mode\":\"explicit\",\"ttl\":\"30m\"}")
   let decoded = fromJson(
     """{"mode":"explicit","ttl":"30m"}""",
-    ResponsePromptCacheOptions
+    PromptCacheOptions
   )
   doAssert decoded.mode == PromptCacheMode.explicit
   doAssert decoded.ttl == PromptCacheTtl.thirtyMinutes
   doAssertRaises JsonParsingError:
     discard fromJson(
       """{"mode":"automatic","ttl":"30m"}""",
-      ResponsePromptCacheOptions
+      PromptCacheOptions
     )
 
 block simple_text_request:
@@ -166,26 +166,26 @@ block message_content:
       unknownFields = ufReject
     )
 
-  let message = responseMessageText(ResponseInputRole.user, "Hello")
-  doAssert message.role == ResponseInputRole.user
+  let message = responseMessageText(ResponseRole.user, "Hello")
+  doAssert message.role == ResponseRole.user
   doAssert message.content.kind == ResponseContentKind.text
   doAssert toJson(message) ==
     """{"role":"user","content":"Hello"}"""
 
   let decodedMessage = fromJson(
     """{"role":"user","content":"decoded","future":true}""",
-    ResponseInputMessage
+    ResponseMessage
   )
   doAssert decodedMessage.content.text == "decoded"
   doAssertRaises JsonParsingError:
     discard fromJson(
       """{"role":"user","content":"decoded","future":true}""",
-      ResponseInputMessage,
+      ResponseMessage,
       unknownFields = ufReject
     )
 
 block message_parts_and_tools:
-  let message = responseMessageParts(ResponseInputRole.user, @[
+  let message = responseMessageParts(ResponseRole.user, @[
     responsePartText("What is shown?"),
     responsePartImageUrl("https://example.com/image.png", detail = "high"),
     responsePartFileId("file_1")
@@ -225,13 +225,13 @@ block message_parts_and_tools:
 
   let decodedChoice = fromJson(
     """{"type":"function","name":"decoded","future":true}""",
-    ResponseNamedToolChoice
+    ResponseToolChoice
   )
   doAssert decodedChoice.name == "decoded"
   doAssertRaises JsonParsingError:
     discard fromJson(
       """{"type":"function","name":"decoded","future":true}""",
-      ResponseNamedToolChoice,
+      ResponseToolChoice,
       unknownFields = ufReject
     )
 
@@ -285,21 +285,21 @@ block request_and_batch:
   doAssert batch[0].url == OpenAIBaseUrl & "/responses"
 
 block parse_and_access:
-  var parsed: ResponseCreateResult
+  var parsed: ResponseResult
   doAssert responseParse(GoodResponse, parsed)
   doAssert idOf(parsed) == "resp_1"
   doAssert modelOf(parsed) == "gpt-5.6-luna"
   doAssert createdAt(parsed) == 1786200000.0
   doAssert outputItems(parsed) == 2
-  doAssert parsed.output[0].`type` == ResponseOutputItemType.message
+  doAssert parsed.output[0].`type` == ResponseOutputKind.message
   doAssert parsed.output[0].content[0].`type` ==
-    ResponseOutputContentType.output_text
-  doAssert parsed.output[1].`type` == ResponseOutputItemType.function_call
+    ResponseOutputPartType.output_text
+  doAssert parsed.output[1].`type` == ResponseOutputKind.function_call
   doAssert firstText(parsed) == "{\"answer\":42}"
   doAssert allTextParts(parsed) == @["{\"answer\":42}"]
   doAssertRaises ValueError:
     discard outputItem(parsed, -1)
-  doAssert outputItem(parsed, 1).`type` == ResponseOutputItemType.function_call
+  doAssert outputItem(parsed, 1).`type` == ResponseOutputKind.function_call
   doAssert firstCallId(parsed) == "call_1"
   doAssert firstCallName(parsed) == "lookup"
   doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
@@ -325,19 +325,19 @@ block parse_and_access:
   doAssert parseFirstCallArgs(parsed, args)
   doAssert not parseFirstCallArgs(parsed, args, unknownFields = ufReject)
 
-  parsed.output.add(ResponseOutputItem(
-    `type`: ResponseOutputItemType.message,
+  parsed.output.add(ResponseOutput(
+    `type`: ResponseOutputKind.message,
     content: @[
-      ResponseOutputContent(
-        `type`: ResponseOutputContentType.refusal,
+      ResponseOutputPart(
+        `type`: ResponseOutputPartType.refusal,
         refusal: "no"
       ),
-      ResponseOutputContent(
-        `type`: ResponseOutputContentType.output_text,
+      ResponseOutputPart(
+        `type`: ResponseOutputPartType.output_text,
         text: ""
       ),
-      ResponseOutputContent(
-        `type`: ResponseOutputContentType.output_text,
+      ResponseOutputPart(
+        `type`: ResponseOutputPartType.output_text,
         text: "later"
       )
     ]
@@ -355,27 +355,27 @@ block parse_and_access:
 
   let futureItem = fromJson(
     """{"id":"future_1","type":"future_output_item","status":"completed"}""",
-    ResponseOutputItem
+    ResponseOutput
   )
-  doAssert futureItem.`type` == ResponseOutputItemType.unknown
+  doAssert futureItem.`type` == ResponseOutputKind.unknown
 
   let futureContent = fromJson(
     """{"type":"future_content","text":"future"}""",
-    ResponseOutputContent
+    ResponseOutputPart
   )
-  doAssert futureContent.`type` == ResponseOutputContentType.unknown
+  doAssert futureContent.`type` == ResponseOutputPartType.unknown
 
 block unknown_field_policy:
-  var parsed: ResponseCreateResult
+  var parsed: ResponseResult
   doAssert responseParse(GoodResponse, parsed)
   doAssert not responseParse(GoodResponse, parsed, unknownFields = ufReject)
 
 block parse_failure:
-  var parsed: ResponseCreateResult
+  var parsed: ResponseResult
   doAssert not responseParse("{bad json", parsed)
 
 block missing_accessors:
-  var parsed: ResponseCreateResult
+  var parsed: ResponseResult
   doAssert responseParse(
     """{"id":"r","object":"response","created_at":1,"status":"in_progress",""" &
       """"model":"m","output":[],"usage":null}""",

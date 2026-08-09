@@ -55,8 +55,8 @@ proc makeWeatherToolResult(args: WeatherToolArgs): WeatherToolResult =
     humidityPct: 82
   )
 
-proc requestChat(client: Relay; endpoint: OpenAIConfig; params: ChatCreateParams;
-    requestId: int64): ChatCreateResult =
+proc requestChat(client: Relay; endpoint: OpenAIConfig; params: ChatParams;
+    requestId: int64): ChatResult =
   let item = client.makeRequest(chatRequest(
     cfg = endpoint,
     params = params,

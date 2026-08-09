@@ -19,7 +19,7 @@ type
   ChatImageDetail* = enum
     `auto`, low, high
 
-  ChatInputAudioFormat* = enum
+  ChatAudioFormat* = enum
     wav, mp3
 
   ChatReasoningEffort* = enum
@@ -32,52 +32,52 @@ type
     xhigh
     max
 
-  ChatResponseFormatType* = enum
+  ChatFormatType* = enum
     text, json_object, json_schema
 
-  ChatCompletionAssistantContentKind* = enum
+  ChatAssistantContentKind* = enum
     none, text, parts
 
-  ChatCompletionContentPartText* = object
-    `type`*: ChatCompletionContentPartType
+  ChatTextPart* = object
+    `type`*: ChatInputPartType
     text*: string
 
   ChatFunctionCall* = object
     name*: string
     arguments*: string
 
-  ChatCompletionMessageToolCall* = object
+  ChatToolCall* = object
     id*: string
     `type`*: ChatToolType
     function*: ChatFunctionCall
 
-  ChatCompletionAssistantContent* = object
-    case kind*: ChatCompletionAssistantContentKind
+  ChatAssistantContent* = object
+    case kind*: ChatAssistantContentKind
     of none:
       discard
     of text:
       text*: string
     of parts:
-      parts*: seq[ChatCompletionContentPartText]
+      parts*: seq[ChatTextPart]
 
-  ChatCompletionAssistantMessage* = object
+  ChatAssistantMessage* = object
     role*: ChatMessageRole
-    tool_calls*: seq[ChatCompletionMessageToolCall]
-    content*: ChatCompletionAssistantContent
+    tool_calls*: seq[ChatToolCall]
+    content*: ChatAssistantContent
     refusal*: Option[string]
     annotations*: seq[RawJson]
 
-  OpenAIChatCompletionChoice* = object
+  ChatChoice* = object
     index*: int
-    message*: ChatCompletionAssistantMessage
+    message*: ChatAssistantMessage
     finish_reason*: ChatFinishReason
 
-  ChatPromptTokensDetails* = object
+  ChatPromptTokenDetails* = object
     cached_tokens*: int
     cache_write_tokens*: int
     audio_tokens*: int
 
-  ChatCompletionTokensDetails* = object
+  ChatOutputTokenDetails* = object
     reasoning_tokens*: int
     audio_tokens*: int
     accepted_prediction_tokens*: int
@@ -87,23 +87,23 @@ type
     prompt_tokens*: int
     completion_tokens*: int
     total_tokens*: int
-    prompt_tokens_details*: ChatPromptTokensDetails
-    completion_tokens_details*: ChatCompletionTokensDetails
+    prompt_tokens_details*: ChatPromptTokenDetails
+    completion_tokens_details*: ChatOutputTokenDetails
 
-  OpenAIChatCompletionOut* = object
+  ChatResult* = object
     id*: string
     `object`*: string
     created*: int64
     model*: string
-    choices*: seq[OpenAIChatCompletionChoice]
+    choices*: seq[ChatChoice]
     usage*: ChatUsage
     service_tier*: string
     system_fingerprint*: Option[string]
 
-  ChatCompletionInputContentKind* = enum
+  ChatInputContentKind* = enum
     text, parts
 
-  ChatCompletionContentPartType* = enum
+  ChatInputPartType* = enum
     text, image_url, input_audio
 
   ChatImageUrl* = object
@@ -112,10 +112,10 @@ type
 
   ChatInputAudio* = object
     data*: string
-    format*: ChatInputAudioFormat
+    format*: ChatAudioFormat
 
-  ChatCompletionContentPart* = object
-    case `type`*: ChatCompletionContentPartType
+  ChatInputPart* = object
+    case `type`*: ChatInputPartType
     of text:
       text*: string
     of image_url:
@@ -123,12 +123,12 @@ type
     of input_audio:
       input_audio*: ChatInputAudio
 
-  ChatCompletionMessageContent* = object
-    case kind*: ChatCompletionInputContentKind
+  ChatInputContent* = object
+    case kind*: ChatInputContentKind
     of text:
       text*: string
     of parts:
-      parts*: seq[ChatCompletionContentPart]
+      parts*: seq[ChatInputPart]
 
   ChatFunctionDefinition* = object
     name*: string
@@ -143,32 +143,28 @@ type
   ChatNamedFunction* = object
     name*: string
 
-  ChatNamedToolChoice* = object
+  ChatToolChoice* = object
     `type`*: ChatToolType
     function*: ChatNamedFunction
 
-  ChatResponseFormatJsonSchema* = object
+  ChatJsonSchemaFormat* = object
     name*: string
     description*: string
     schema*: RawJson
     strict*: bool
 
-  ChatResponseFormat* = object
-    `type`*: ChatResponseFormatType
-    json_schema*: ChatResponseFormatJsonSchema
-
-  ChatPromptCacheOptions* = object
-    mode*: PromptCacheMode
-    ttl*: PromptCacheTtl
+  ChatFormat* = object
+    `type`*: ChatFormatType
+    json_schema*: ChatJsonSchemaFormat
 
   ChatMessage* = object
     role*: ChatMessageRole
-    content*: ChatCompletionMessageContent
-    tool_calls*: seq[ChatCompletionMessageToolCall]
+    content*: ChatInputContent
+    tool_calls*: seq[ChatToolCall]
     name*: string
     tool_call_id*: string
 
-  OpenAIChatCompletionsIn* = object
+  ChatParams* = object
     model*: string
     messages*: seq[ChatMessage]
     stream*: bool
@@ -177,11 +173,11 @@ type
     reasoning_effort*: ChatReasoningEffort
     tools*: seq[ChatTool]
     tool_choice*: RawJson
-    response_format*: ChatResponseFormat
+    response_format*: ChatFormat
     parallel_tool_calls*: bool = true
     metadata*: RawJson
     prompt_cache_key*: string
-    prompt_cache_options*: ChatPromptCacheOptions
+    prompt_cache_options*: PromptCacheOptions
     safety_identifier*: string
     service_tier*: string
     store*: bool
@@ -192,33 +188,33 @@ const
   ChatToolChoiceNone* = RawJson("\"none\"")
   ChatToolChoiceRequired* = RawJson("\"required\"")
 
-proc readJson*(dst: var ChatCompletionAssistantContent; p: var JsonParser;
+proc readJson*(dst: var ChatAssistantContent; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
   case p.tok
   of tkNull:
-    dst = ChatCompletionAssistantContent(kind: none)
+    dst = ChatAssistantContent(kind: none)
     discard getTok(p)
   of tkString:
-    dst = ChatCompletionAssistantContent(kind: text)
+    dst = ChatAssistantContent(kind: text)
     readJson(dst.text, p, unknownFields)
   of tkBracketLe:
-    dst = ChatCompletionAssistantContent(kind: parts)
+    dst = ChatAssistantContent(kind: parts)
     readJson(dst.parts, p, unknownFields)
   else:
     raiseParseErr(p, "string, array, or null")
 
-proc readJson*(dst: var ChatCompletionMessageContent; p: var JsonParser;
+proc readJson*(dst: var ChatInputContent; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
   if p.tok == tkString:
-    dst = ChatCompletionMessageContent(kind: text)
+    dst = ChatInputContent(kind: text)
     readJson(dst.text, p, unknownFields)
   elif p.tok == tkBracketLe:
-    dst = ChatCompletionMessageContent(kind: parts)
+    dst = ChatInputContent(kind: parts)
     readJson(dst.parts, p, unknownFields)
   else:
     raiseParseErr(p, "string or array")
 
-proc writeJson*(s: Stream; x: ChatCompletionAssistantContent) =
+proc writeJson*(s: Stream; x: ChatAssistantContent) =
   case x.kind
   of none:
     streams.write(s, "null")
@@ -227,7 +223,7 @@ proc writeJson*(s: Stream; x: ChatCompletionAssistantContent) =
   of parts:
     writeJson(s, x.parts)
 
-proc writeJson*(s: Stream; x: ChatCompletionMessageContent) =
+proc writeJson*(s: Stream; x: ChatInputContent) =
   case x.kind
   of text:
     writeJson(s, x.text)
@@ -261,7 +257,7 @@ proc writeJson*(s: Stream; x: ChatFunctionDefinition) =
   writeJsonField(s, "strict", x.strict)
   streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: ChatResponseFormatJsonSchema) =
+proc writeJson*(s: Stream; x: ChatJsonSchemaFormat) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "name", x.name)
@@ -274,21 +270,12 @@ proc writeJson*(s: Stream; x: ChatResponseFormatJsonSchema) =
   writeJsonField(s, "strict", x.strict)
   streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: ChatResponseFormat) =
+proc writeJson*(s: Stream; x: ChatFormat) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "type", x.`type`)
-  if x.`type` == ChatResponseFormatType.json_schema:
+  if x.`type` == ChatFormatType.json_schema:
     writeJsonField(s, "json_schema", x.json_schema)
-  streams.write(s, "}")
-
-proc writeJson*(s: Stream; x: ChatPromptCacheOptions) =
-  var comma = false
-  streams.write(s, "{")
-  if x.mode != PromptCacheMode.unspecified:
-    writeJsonField(s, "mode", x.mode)
-  if x.ttl != PromptCacheTtl.unspecified:
-    writeJsonField(s, "ttl", x.ttl)
   streams.write(s, "}")
 
 proc writeJson*(s: Stream; x: ChatMessage) =
@@ -307,7 +294,7 @@ proc writeJson*(s: Stream; x: ChatMessage) =
     writeJsonField(s, "tool_call_id", x.tool_call_id)
   streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
+proc writeJson*(s: Stream; x: ChatParams) =
   var comma = false
   streams.write(s, "{")
   writeJsonField(s, "model", x.model)
@@ -324,7 +311,7 @@ proc writeJson*(s: Stream; x: OpenAIChatCompletionsIn) =
     writeJsonField(s, "tools", x.tools)
   if string(x.tool_choice).len > 0:
     writeJsonField(s, "tool_choice", x.tool_choice)
-  if x.response_format.`type` != ChatResponseFormatType.text:
+  if x.response_format.`type` != ChatFormatType.text:
     writeJsonField(s, "response_format", x.response_format)
   if not x.parallel_tool_calls:
     writeJsonField(s, "parallel_tool_calls", x.parallel_tool_calls)
