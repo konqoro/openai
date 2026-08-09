@@ -106,8 +106,8 @@ proc testEmbeddingBatchAdd() =
 proc testEmbeddingParseAndAccessors() =
   var parsed: EmbeddingResult
   doAssert embeddingParse(GoodResponse, parsed)
-  doAssert outputItems(parsed) == 1
-  doAssert modelOf(parsed) == "Qwen/Qwen3-Embedding-0.6B"
+  doAssert parsed.data.len == 1
+  doAssert parsed.model == "Qwen/Qwen3-Embedding-0.6B"
   doAssert inputTokens(parsed) == 7
   doAssert totalTokens(parsed) == 7
   doAssert embedding(parsed).len == 3
@@ -117,7 +117,7 @@ proc testEmbeddingParseAndAccessors() =
 proc testBase64EmbeddingParseAndAccessors() =
   var parsed: EmbeddingResult
   doAssert embeddingParse(Base64Response, parsed)
-  doAssert outputItems(parsed) == 1
+  doAssert parsed.data.len == 1
   doAssert parsed.data[0].embedding.kind == EmbeddingValueKind.encoded
   doAssert embeddingBase64(parsed) == "AQID"
   expectValueError embedding(parsed)

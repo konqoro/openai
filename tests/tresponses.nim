@@ -287,10 +287,10 @@ block request_and_batch:
 block parse_and_access:
   var parsed: ResponseResult
   doAssert responseParse(GoodResponse, parsed)
-  doAssert idOf(parsed) == "resp_1"
-  doAssert modelOf(parsed) == "gpt-5.6-luna"
+  doAssert parsed.id == "resp_1"
+  doAssert parsed.model == "gpt-5.6-luna"
   doAssert createdAt(parsed) == 1786200000.0
-  doAssert outputItems(parsed) == 2
+  doAssert parsed.output.len == 2
   doAssert parsed.output[0].`type` == ResponseOutputKind.message
   doAssert parsed.output[0].content[0].`type` ==
     ResponseOutputPartType.output_text

@@ -34,8 +34,9 @@ contract materially clearer. Call out any such change in the handoff.
   - `<capability>Request` creates a Relay request.
   - `<capability>Add` adds that request to a `RequestBatch`.
   - `<capability>Parse` decodes a response body into caller-owned storage and returns `bool`.
-- Use the same accessor names for the same concepts: `idOf`, `modelOf`, `createdAt`, `inputTokens`,
-  `outputTokens`, `cachedInputTokens`, `reasoningTokens`, and `totalTokens`.
+- Use the same accessor names for normalized or derived concepts: `createdAt`, `inputTokens`,
+  `outputTokens`, `cachedInputTokens`, `reasoningTokens`, and `totalTokens`. Use direct field syntax
+  for public wire fields such as `id`, `model`, and `status`.
 - Export useful semantic accessors such as `outputResponseOf` and `outputErrorOf`. Keep only validation,
   serialization, and orchestration helpers private.
 - Prefer procs and explicit variant objects over methods, runtime dispatch, converters, or clever
@@ -146,8 +147,9 @@ contract materially clearer. Call out any such change in the handoff.
   these roles separate.
 - Return `lent T` for immutable access to stored strings, sequences, objects, and `RawJson`. Return
   scalar values and enums by value.
-- Where useful and safe, pair a borrowed accessor with a `var T` overload that returns the underlying
-  storage directly. Never return a borrow through a temporary local.
+- Where useful and safe, pair a direct indexed-storage accessor with a `var T` overload that returns
+  the underlying storage directly. Semantic selection accessors such as `firstText` return `lent T`
+  only. Never return a borrow through a temporary local.
 - Validate indices before indexing. Route repeated failure cases through one private
   `{.noinline, noreturn.}` helper that raises a precise `ValueError`.
 - For required optional data, expose `hasX` and a strict accessor. The strict accessor raises rather

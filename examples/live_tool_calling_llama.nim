@@ -145,7 +145,7 @@ proc main() =
   var answer: WeatherAnswer
   doAssert parseFirstTextJson(secondTurn, answer), firstText(secondTurn)
   echo "\n[Weather Information]",
-    "\n  Model:       ", modelOf(secondTurn),
+    "\n  Model:       ", secondTurn.model,
     "\n  City:        ", answer.city,
     "\n  Temperature: ", answer.temperatureC, "°C",
     "\n  Condition:   ", answer.condition,

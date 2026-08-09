@@ -107,11 +107,5 @@ proc fileDeletedParse*(body: string; dst: var DeletedFile;
   except CatchableError:
     result = false
 
-proc idOf*(x: FileInfo): lent string {.inline.} =
-  result = x.id
-
-proc idOf*(x: var FileInfo): var string {.inline.} =
-  result = x.id
-
 proc expiresAt*(x: FileInfo): int64 {.inline.} =
   result = x.expires_at.get(0)

@@ -230,23 +230,8 @@ proc firstNonEmptyTextPartLocation(
         return (outputIndex, partIndex)
   raiseNoOutputText()
 
-proc idOf*(x: ResponseResult): lent string {.inline.} =
-  result = x.id
-
-proc idOf*(x: var ResponseResult): var string {.inline.} =
-  result = x.id
-
-proc modelOf*(x: ResponseResult): lent string {.inline.} =
-  result = x.model
-
-proc modelOf*(x: var ResponseResult): var string {.inline.} =
-  result = x.model
-
 proc createdAt*(x: ResponseResult): float {.inline.} =
   x.created_at
-
-proc outputItems*(x: ResponseResult): int {.inline.} =
-  x.output.len
 
 proc outputItem*(x: ResponseResult;
     outputIndex: int): lent ResponseOutput {.inline.} =
@@ -262,11 +247,6 @@ proc outputItem*(x: var ResponseResult;
 
 proc firstText*(x: ResponseResult): lent string =
   ## Returns the first non-empty output-text part in response order.
-  let location = firstNonEmptyTextPartLocation(x)
-  result = x.output[location.outputIndex].content[location.partIndex].text
-
-proc firstText*(x: var ResponseResult): var string =
-  ## Returns a mutable view of the first non-empty output-text part in response order.
   let location = firstNonEmptyTextPartLocation(x)
   result = x.output[location.outputIndex].content[location.partIndex].text
 
@@ -307,31 +287,13 @@ proc firstCallId*(x: ResponseResult): lent string =
       return x.output[i].call_id
   raiseResponseAccessorError("response has no function calls")
 
-proc firstCallId*(x: var ResponseResult): var string =
-  for i in 0..<x.output.len:
-    if x.output[i].`type` == ResponseOutputKind.function_call:
-      return x.output[i].call_id
-  raiseResponseAccessorError("response has no function calls")
-
 proc firstCallName*(x: ResponseResult): lent string =
   for i in 0..<x.output.len:
     if x.output[i].`type` == ResponseOutputKind.function_call:
       return x.output[i].name
   raiseResponseAccessorError("response has no function calls")
 
-proc firstCallName*(x: var ResponseResult): var string =
-  for i in 0..<x.output.len:
-    if x.output[i].`type` == ResponseOutputKind.function_call:
-      return x.output[i].name
-  raiseResponseAccessorError("response has no function calls")
-
 proc firstCallArgs*(x: ResponseResult): lent string =
-  for i in 0..<x.output.len:
-    if x.output[i].`type` == ResponseOutputKind.function_call:
-      return x.output[i].arguments
-  raiseResponseAccessorError("response has no function calls")
-
-proc firstCallArgs*(x: var ResponseResult): var string =
   for i in 0..<x.output.len:
     if x.output[i].`type` == ResponseOutputKind.function_call:
       return x.output[i].arguments

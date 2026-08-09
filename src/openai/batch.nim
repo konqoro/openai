@@ -94,15 +94,6 @@ proc batchOutputLineParse*(line: string; dst: var BatchOutputLine;
   except CatchableError:
     result = false
 
-proc idOf*(x: Batch): lent string {.inline.} =
-  result = x.id
-
-proc idOf*(x: var Batch): var string {.inline.} =
-  result = x.id
-
-proc statusOf*(x: Batch): BatchStatus {.inline.} =
-  result = x.status
-
 proc isTerminal*(x: Batch): bool {.inline.} =
   result = x.status in {BatchStatus.completed, failed, expired, cancelled}
 

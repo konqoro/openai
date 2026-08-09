@@ -66,9 +66,6 @@ proc embeddingParse*(body: string; dst: var EmbeddingResult;
   except CatchableError:
     result = false
 
-proc outputItems*(x: EmbeddingResult): int {.inline.} =
-  result = x.data.len
-
 proc raiseAccessorValueError(message: string) {.noinline, noreturn.} =
   raise newException(ValueError, message)
 
@@ -106,12 +103,6 @@ proc embeddingBase64*(x: var EmbeddingResult; i = 0): var string {.inline.} =
   ensureEmbeddingIndex(x.data.len, i)
   ensureBase64Embedding(x.data[i].embedding, i)
   result = x.data[i].embedding.encoded
-
-proc modelOf*(x: EmbeddingResult): lent string {.inline.} =
-  result = x.model
-
-proc modelOf*(x: var EmbeddingResult): var string {.inline.} =
-  result = x.model
 
 proc inputTokens*(x: EmbeddingResult): int {.inline.} =
   result = x.usage.prompt_tokens

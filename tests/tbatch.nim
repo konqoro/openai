@@ -164,8 +164,8 @@ proc testInputLineJson() =
 proc testBatchParseAndAccessors() =
   var parsed: Batch
   doAssert batchParse(CompletedBatchResponse, parsed)
-  doAssert idOf(parsed) == "batch_abc123"
-  doAssert statusOf(parsed) == BatchStatus.completed
+  doAssert parsed.id == "batch_abc123"
+  doAssert parsed.status == BatchStatus.completed
   doAssert isTerminal(parsed)
   doAssert not hasModel(parsed)
   doAssert inputFileId(parsed) == "file-abc123"
@@ -195,7 +195,7 @@ proc testBatchParseAndAccessors() =
 
   var validating: Batch
   doAssert batchParse(ValidatingBatchResponse, validating)
-  doAssert statusOf(validating) == BatchStatus.validating
+  doAssert validating.status == BatchStatus.validating
   doAssert not isTerminal(validating)
   doAssert not hasMetadata(validating)
   doAssert not hasRequestCounts(validating)
@@ -250,7 +250,7 @@ proc testBatchListParse() =
   doAssert parsed.data.len == 1
   doAssert parsed.has_more
   doAssert parsed.first_id == "batch_abc123"
-  doAssert idOf(parsed.data[0]) == "batch_abc123"
+  doAssert parsed.data[0].id == "batch_abc123"
 
 proc testOutputLineParse() =
   var ok: BatchOutputLine

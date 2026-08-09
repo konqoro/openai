@@ -81,7 +81,7 @@ proc main() =
   defer: client.close()
 
   let parsed = requestWithRetry(client, endpoint, params, retryPolicy)
-  echo "model=", modelOf(parsed)
+  echo "model=", parsed.model
   echo firstText(parsed).strip()
 
 when isMainModule:

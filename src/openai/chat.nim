@@ -261,18 +261,6 @@ proc firstNonEmptyTextPartIndex(content: ChatAssistantContent; i: int): int =
       result = partIdx
       return result
 
-proc idOf*(x: ChatResult): lent string {.inline.} =
-  result = x.id
-
-proc idOf*(x: var ChatResult): var string {.inline.} =
-  result = x.id
-
-proc modelOf*(x: ChatResult): lent string {.inline.} =
-  result = x.model
-
-proc modelOf*(x: var ChatResult): var string {.inline.} =
-  result = x.model
-
 proc createdAt*(x: ChatResult): int64 {.inline.} =
   result = x.created
 
@@ -291,25 +279,11 @@ proc reasoningTokens*(x: ChatResult): int {.inline.} =
 proc totalTokens*(x: ChatResult): int {.inline.} =
   result = x.usage.total_tokens
 
-proc choices*(x: ChatResult): int {.inline.} =
-  result = x.choices.len
-
 proc finish*(x: ChatResult; i = 0): ChatFinishReason {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   result = x.choices[i].finish_reason
 
 proc firstText*(x: ChatResult; i = 0): lent string =
-  ensureChoiceIndex(x.choices.len, i)
-  case x.choices[i].message.content.kind
-  of ChatAssistantContentKind.none:
-    raiseAccessorValueError("choice index " & $i & " has no content")
-  of ChatAssistantContentKind.text:
-    result = x.choices[i].message.content.text
-  of ChatAssistantContentKind.parts:
-    let partIdx = firstNonEmptyTextPartIndex(x.choices[i].message.content, i)
-    result = x.choices[i].message.content.parts[partIdx].text
-
-proc firstText*(x: var ChatResult; i = 0): var string =
   ensureChoiceIndex(x.choices.len, i)
   case x.choices[i].message.content.kind
   of ChatAssistantContentKind.none:
@@ -355,31 +329,13 @@ proc firstCallId*(x: ChatResult; i = 0): lent string {.inline.} =
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].id
 
-proc firstCallId*(x: var ChatResult; i = 0): var string {.inline.} =
-  ensureChoiceIndex(x.choices.len, i)
-  if x.choices[i].message.tool_calls.len == 0:
-    raiseNoFunctionCallsAtChoice(i)
-  result = x.choices[i].message.tool_calls[0].id
-
 proc firstCallName*(x: ChatResult; i = 0): lent string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].function.name
 
-proc firstCallName*(x: var ChatResult; i = 0): var string {.inline.} =
-  ensureChoiceIndex(x.choices.len, i)
-  if x.choices[i].message.tool_calls.len == 0:
-    raiseNoFunctionCallsAtChoice(i)
-  result = x.choices[i].message.tool_calls[0].function.name
-
 proc firstCallArgs*(x: ChatResult; i = 0): lent string {.inline.} =
-  ensureChoiceIndex(x.choices.len, i)
-  if x.choices[i].message.tool_calls.len == 0:
-    raiseNoFunctionCallsAtChoice(i)
-  result = x.choices[i].message.tool_calls[0].function.arguments
-
-proc firstCallArgs*(x: var ChatResult; i = 0): var string {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
   if x.choices[i].message.tool_calls.len == 0:
     raiseNoFunctionCallsAtChoice(i)

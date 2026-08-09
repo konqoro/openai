@@ -82,7 +82,7 @@ let item = client.makeRequest(chatRequest(cfg, params))
 var parsed: ChatResult
 if item.error.kind == teNone and item.response.code == Http200 and
     chatParse(item.response.body, parsed):
-  echo "model=", modelOf(parsed)
+  echo "model=", parsed.model
   echo "text=", firstText(parsed)
   echo "tokens=", totalTokens(parsed)
 ```
@@ -90,7 +90,7 @@ if item.error.kind == teNone and item.response.code == Http200 and
 Parse and access important fields quickly:
 
 ```nim
-echo "model=", modelOf(parsed)
+echo "model=", parsed.model
 echo "text=", firstText(parsed)
 echo "tokens=", totalTokens(parsed)
 ```
@@ -120,7 +120,7 @@ proc main() =
   var parsed: ResponseResult
   if item.error.kind == teNone and item.response.code == Http200 and
       responseParse(item.response.body, parsed):
-    echo "model=", modelOf(parsed)
+    echo "model=", parsed.model
     echo "text=", firstText(parsed)
 
 main()
@@ -265,7 +265,7 @@ download, or delete files:
 let upload = fileUploadRequest(cfg, "input.jsonl", "batch", jsonlContent)
 var uploaded: FileInfo
 if fileParse(client.makeRequest(upload).response.body, uploaded):
-  echo "file=", idOf(uploaded)
+  echo "file=", uploaded.id
 
 let download = fileContentRequest(cfg, "file-abc123")
 let content = client.makeRequest(download).response.body
@@ -305,11 +305,11 @@ let create = batchCreateRequest(cfg,
   batchCreate("file-abc123", "/v1/chat/completions"))
 var batch: Batch
 if batchParse(client.makeRequest(create).response.body, batch):
-  echo "batch=", idOf(batch), " status=", statusOf(batch)
+  echo "batch=", batch.id, " status=", batch.status
 
-let retrieve = batchRetrieveRequest(cfg, idOf(batch))
+let retrieve = batchRetrieveRequest(cfg, batch.id)
 if batchParse(client.makeRequest(retrieve).response.body, batch):
-  if statusOf(batch) == BatchStatus.completed:
+  if batch.status == BatchStatus.completed:
     echo "output=", outputFileId(batch)
     echo "usage=", inputTokens(batch), "/", outputTokens(batch)
 ```
@@ -379,15 +379,14 @@ proc requestWithRetry(client: Relay; cfg: OpenAIConfig;
   `chatUserMessageText`, `chatUserMessageParts`, `chatPartText`,
   `chatPartImageUrl`, `chatFunctionTool`, `chatFormatJsonSchema`
 - Shared response accessors:
-  `idOf`, `modelOf`, `firstText`, `allTextParts`, `functionCalls`,
+  `createdAt`, `firstText`, `allTextParts`, `functionCalls`,
   `firstCallId`, `firstCallName`, `firstCallArgs`, `parseFirstTextJson`,
   `parseFirstCallArgs`, `inputTokens`, `outputTokens`, `totalTokens`
   - Chat accessors select a completion with `i = 0`.
   - Responses text and function-call accessors scan the heterogeneous output list in response
     order. Use `outputItem(response, outputIndex)` for explicit positional access.
 - Prompt caching:
-  `PromptCacheMode`, `PromptCacheTtl`, `ChatPromptCacheOptions`,
-  `ResponsePromptCacheOptions`
+  `PromptCacheMode`, `PromptCacheTtl`, `PromptCacheOptions`
 - Embeddings:
   `embeddingInputText`, `embeddingInputTexts`, `embeddingInputTokens`,
   `embeddingCreate`, `embeddingRequest`, `embeddingAdd`, `embeddingParse`,

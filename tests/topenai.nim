@@ -556,10 +556,10 @@ proc testChatParse() =
 proc testResponseGettersWithTextContent() =
   var parsed: ChatResult
   doAssert chatParse(GoodResponse, parsed)
-  doAssert idOf(parsed) == "cmpl_1"
+  doAssert parsed.id == "cmpl_1"
   doAssert createdAt(parsed) == 1711652795
-  doAssert modelOf(parsed) == "gpt-4.1-mini"
-  doAssert choices(parsed) == 1
+  doAssert parsed.model == "gpt-4.1-mini"
+  doAssert parsed.choices.len == 1
   doAssert finish(parsed) == ChatFinishReason.stop
   doAssert firstText(parsed) == "Hello"
   doAssert allTextParts(parsed).len == 0
@@ -588,9 +588,9 @@ proc testResponseGettersWithPartsAndToolCalls() =
 
 proc testResponseAccessorsRaiseOnMissingChoice() =
   let empty = ChatResult()
-  doAssert idOf(empty) == ""
-  doAssert modelOf(empty) == ""
-  doAssert choices(empty) == 0
+  doAssert empty.id == ""
+  doAssert empty.model == ""
+  doAssert empty.choices.len == 0
   doAssert inputTokens(empty) == 0
   doAssert outputTokens(empty) == 0
   doAssert totalTokens(empty) == 0
@@ -626,19 +626,19 @@ proc testVarCallsAccessor() =
   doAssert firstCallName(parsed) == "lookup"
   doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
 
-proc testVarStringAccessors() =
+proc testDirectResultFieldsAreMutable() =
   var parsed: ChatResult
   doAssert chatParse(PartsResponse, parsed)
 
-  idOf(parsed) = "cmpl_mut"
-  modelOf(parsed) = "gpt-mut"
-  firstText(parsed) = "mut-first"
-  firstCallId(parsed) = "call_mut"
-  firstCallName(parsed) = "lookupMut"
-  firstCallArgs(parsed) = "{\"q\":\"mut\"}"
+  parsed.id = "cmpl_mut"
+  parsed.model = "gpt-mut"
+  parsed.choices[0].message.content.parts[0].text = "mut-first"
+  parsed.choices[0].message.tool_calls[0].id = "call_mut"
+  parsed.choices[0].message.tool_calls[0].function.name = "lookupMut"
+  parsed.choices[0].message.tool_calls[0].function.arguments = "{\"q\":\"mut\"}"
 
-  doAssert idOf(parsed) == "cmpl_mut"
-  doAssert modelOf(parsed) == "gpt-mut"
+  doAssert parsed.id == "cmpl_mut"
+  doAssert parsed.model == "gpt-mut"
   doAssert firstText(parsed) == "mut-first"
   doAssert firstCallId(parsed) == "call_mut"
   doAssert firstCallName(parsed) == "lookupMut"
@@ -768,7 +768,7 @@ when isMainModule:
   testResponseGettersWithPartsAndToolCalls()
   testResponseAccessorsRaiseOnMissingChoice()
   testVarCallsAccessor()
-  testVarStringAccessors()
+  testDirectResultFieldsAreMutable()
   testParseFirstTextJson()
   testParseFirstCallArgs()
   testStoreAndCurrentFieldsSerialization()

@@ -95,7 +95,7 @@ proc testFileRequestBuilders() =
 proc testFileParseAndAccessors() =
   var file: FileInfo
   doAssert fileParse(FileResponse, file)
-  doAssert idOf(file) == "file-abc123"
+  doAssert file.id == "file-abc123"
   doAssert file.purpose == FilePurpose.fine_tune
   doAssert file.bytes == 120000
   doAssert expiresAt(file) == 0
