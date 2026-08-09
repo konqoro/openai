@@ -46,12 +46,10 @@ proc readJson*(dst: var ErrorResponse; p: var JsonParser;
   if not foundError:
     raiseParseErr(p, "error field")
 
-proc errorParse*(body: string; dst: var ErrorResponse;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
-  ## Parses an error envelope using the selected unknown-field policy.
+proc errorParse*(body: string; dst: var ErrorResponse): bool =
+  ## Parses a forward-compatible error envelope.
   try:
-    dst = fromJson(body, ErrorResponse,
-      unknownFields = unknownFields)
+    dst = fromJson(body, ErrorResponse)
     result = true
   except CatchableError:
     result = false

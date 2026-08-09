@@ -1,6 +1,5 @@
 import std/strutils
 import relay
-import jsonx
 import openai/files
 
 const FileResponse = """{
@@ -129,36 +128,9 @@ proc testFileUploadAdd() =
   doAssert batch[0].headers["Content-Type"] == "multipart/form-data; boundary=b1"
   doAssert batch[0].body.contains("--b1--\r\n")
 
-proc testUnknownFieldPolicy() =
-  let futureFile = FileResponse.replace(
-    "\"status\": \"processed\"",
-    "\"status\": \"processed\", \"future_file_field\": true"
-  )
-  var file: FileInfo
-  doAssert fileParse(futureFile, file)
-  doAssert not fileParse(futureFile, file, unknownFields = ufReject)
-
-  let futureList = FileListResponse.replace(
-    "\"has_more\": false",
-    "\"has_more\": false, \"future_list_field\": true"
-  )
-  var list: FilePage
-  doAssert fileListParse(futureList, list)
-  doAssert not fileListParse(futureList, list, unknownFields = ufReject)
-
-  let futureDeleted = FileDeletedResponse.replace(
-    "\"deleted\": true",
-    "\"deleted\": true, \"future_deleted_field\": true"
-  )
-  var deleted: DeletedFile
-  doAssert fileDeletedParse(futureDeleted, deleted)
-  doAssert not fileDeletedParse(futureDeleted, deleted,
-    unknownFields = ufReject)
-
 when isMainModule:
   testFileUploadRequest()
   testFileRequestBuilders()
   testFileParseAndAccessors()
   testFilePurposeStringValues()
   testFileUploadAdd()
-  testUnknownFieldPolicy()

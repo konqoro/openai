@@ -122,8 +122,8 @@ contract materially clearer. Call out any such change in the handoff.
 
 - jsonx decoding skips unknown object fields by default with `ufSkip`. This is the normal production
   behavior and provides forward compatibility.
-- Every public parse operation accepts
-  `unknownFields: UnknownFieldPolicy = ufSkip`. Callers select strict decoding with `ufReject`.
+- Public parse helpers always use `ufSkip`. For fixture or schema validation, callers decode the
+  public schema type directly with `fromJson(..., unknownFields = ufReject)`.
 - The selected policy must propagate through nested objects, sequences, options, tables, references,
   tuples, files, and JSON iterators.
 - Every custom `readJson` overload must accept `unknownFields: UnknownFieldPolicy` and forward it to

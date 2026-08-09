@@ -226,11 +226,10 @@ proc chatAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
   requestAdd(batch, cfg, hvPost, cfg.url & ChatCompletionsPath, params,
     requestId, timeoutMs, headers)
 
-proc chatParse*(body: string; dst: var ChatResult;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc chatParse*(body: string; dst: var ChatResult): bool =
   ## Parses a non-streaming Chat Completions result.
   try:
-    dst = fromJson(body, ChatResult, unknownFields = unknownFields)
+    dst = fromJson(body, ChatResult)
     result = true
   except CatchableError:
     result = false
@@ -302,10 +301,9 @@ proc firstText*(x: ChatResult; i = 0): lent string =
     let partIdx = firstNonEmptyTextPartIndex(x.choices[i].message.content, i)
     result = x.choices[i].message.content.parts[partIdx].text
 
-proc parseFirstTextJson*[T](x: ChatResult; dst: var T; i = 0;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc parseFirstTextJson*[T](x: ChatResult; dst: var T; i = 0): bool =
   try:
-    dst = fromJson(x.firstText(i), T, unknownFields = unknownFields)
+    dst = fromJson(x.firstText(i), T)
     result = true
   except CatchableError:
     result = false
@@ -349,10 +347,9 @@ proc firstCallArgs*(x: ChatResult; i = 0): lent string {.inline.} =
     raiseNoFunctionCallsAtChoice(i)
   result = x.choices[i].message.tool_calls[0].function.arguments
 
-proc parseFirstCallArgs*[T](x: ChatResult; dst: var T; i = 0;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc parseFirstCallArgs*[T](x: ChatResult; dst: var T; i = 0): bool =
   try:
-    dst = fromJson(x.firstCallArgs(i), T, unknownFields = unknownFields)
+    dst = fromJson(x.firstCallArgs(i), T)
     result = true
   except CatchableError:
     result = false

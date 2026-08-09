@@ -222,32 +222,6 @@ proc testBatchParseAndAccessors() =
   doAssert failed.errors.get.data[0].code == "invalid_json"
   doAssert lineOf(failed.errors.get.data[0]) == 3
 
-proc testUnknownFieldPolicy() =
-  let futureBatch = CompletedBatchResponse.replace(
-    "\"total\": 100,",
-    "\"total\": 100, \"future_count_field\": true,"
-  )
-  var batch: Batch
-  doAssert batchParse(futureBatch, batch)
-  doAssert not batchParse(futureBatch, batch, unknownFields = ufReject)
-
-  let futureList = BatchListResponse.replace(
-    "\"has_more\": true",
-    "\"has_more\": true, \"future_list_field\": true"
-  )
-  var list: BatchList
-  doAssert batchListParse(futureList, list)
-  doAssert not batchListParse(futureList, list, unknownFields = ufReject)
-
-  let futureLine = OutputLineSuccess.replace(
-    "\"status_code\":200,",
-    "\"status_code\":200,\"future_response_field\":true,"
-  )
-  var line: BatchOutputLine
-  doAssert batchOutputLineParse(futureLine, line)
-  doAssert not batchOutputLineParse(futureLine, line,
-    unknownFields = ufReject)
-
 proc testBatchParseFailure() =
   var parsed: Batch
   doAssert not batchParse("{bad json", parsed)
@@ -294,4 +268,3 @@ when isMainModule:
   testBatchParseFailure()
   testBatchListParse()
   testOutputLineParse()
-  testUnknownFieldPolicy()

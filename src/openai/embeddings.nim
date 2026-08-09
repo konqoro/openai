@@ -57,11 +57,9 @@ proc embeddingAdd*(batch: var RequestBatch; cfg: OpenAIConfig;
   requestAdd(batch, cfg, hvPost, cfg.url & EmbeddingsPath, params,
     requestId, timeoutMs, headers)
 
-proc embeddingParse*(body: string; dst: var EmbeddingResult;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc embeddingParse*(body: string; dst: var EmbeddingResult): bool =
   try:
-    dst = fromJson(body, EmbeddingResult,
-      unknownFields = unknownFields)
+    dst = fromJson(body, EmbeddingResult)
     result = true
   except CatchableError:
     result = false

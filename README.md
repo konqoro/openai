@@ -327,9 +327,9 @@ by `custom_id` (`outputStatusCode`, `outputRequestId`, `outputBody`,
 
 ## Compatible and Strict JSON Decoding
 
-Response parsers skip unknown object fields by default so additions to the API
-do not break existing clients. Pass `ufReject` when validating fixtures or when
-your application requires an exact schema:
+Response parsers skip unknown object fields so additions to the API do not
+break existing clients. For fixture validation or an exact schema, decode the
+public schema type with jsonx directly:
 
 ```nim
 import jsonx
@@ -337,13 +337,10 @@ import openai/responses
 
 var parsed: ResponseResult
 discard responseParse(body, parsed)
-discard responseParse(body, parsed, unknownFields = ufReject)
+let strict = fromJson(body, ResponseResult, unknownFields = ufReject)
 ```
 
-Each parser forwards the policy through nested decoded values.
-`parseFirstTextJson` and `parseFirstCallArgs` also accept it when decoding JSON
-embedded in model output. The same parameter is available on the Chat,
-Embeddings, Files, Batch, and error parsing helpers.
+Custom schema decoders forward the selected policy through nested decoded values.
 
 ## Optional Retry Module
 

@@ -67,26 +67,23 @@ proc inputLineJson*(customId: sink string; body: sink RawJson; url: string): str
   addInputLine(s, customId, body, url)
   result = move(s.s)
 
-proc batchParse*(body: string; dst: var Batch;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc batchParse*(body: string; dst: var Batch): bool =
   try:
-    dst = fromJson(body, Batch, unknownFields = unknownFields)
+    dst = fromJson(body, Batch)
     result = dst.id.len > 0
   except CatchableError:
     result = false
 
-proc batchListParse*(body: string; dst: var BatchList;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc batchListParse*(body: string; dst: var BatchList): bool =
   try:
-    dst = fromJson(body, BatchList, unknownFields = unknownFields)
+    dst = fromJson(body, BatchList)
     result = true
   except CatchableError:
     result = false
 
-proc batchOutputLineParse*(line: string; dst: var BatchOutputLine;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc batchOutputLineParse*(line: string; dst: var BatchOutputLine): bool =
   try:
-    dst = fromJson(line, BatchOutputLine, unknownFields = unknownFields)
+    dst = fromJson(line, BatchOutputLine)
     result = true
   except CatchableError:
     result = false

@@ -83,26 +83,23 @@ proc fileDeleteRequest*(cfg: OpenAIConfig; fileId: string;
   request(cfg, hvDelete, cfg.url & FilesPath & "/" & fileId,
     requestId, timeoutMs, headers)
 
-proc fileParse*(body: string; dst: var FileInfo;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc fileParse*(body: string; dst: var FileInfo): bool =
   try:
-    dst = fromJson(body, FileInfo, unknownFields = unknownFields)
+    dst = fromJson(body, FileInfo)
     result = dst.id.len > 0
   except CatchableError:
     result = false
 
-proc fileListParse*(body: string; dst: var FilePage;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc fileListParse*(body: string; dst: var FilePage): bool =
   try:
-    dst = fromJson(body, FilePage, unknownFields = unknownFields)
+    dst = fromJson(body, FilePage)
     result = true
   except CatchableError:
     result = false
 
-proc fileDeletedParse*(body: string; dst: var DeletedFile;
-    unknownFields: UnknownFieldPolicy = ufSkip): bool =
+proc fileDeletedParse*(body: string; dst: var DeletedFile): bool =
   try:
-    dst = fromJson(body, DeletedFile, unknownFields = unknownFields)
+    dst = fromJson(body, DeletedFile)
     result = true
   except CatchableError:
     result = false

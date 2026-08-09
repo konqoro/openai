@@ -320,10 +320,8 @@ block parse_and_access:
 
   parsed.output[0].content[0].text = """{"answer":42,"future":true}"""
   doAssert parseFirstTextJson(parsed, answer)
-  doAssert not parseFirstTextJson(parsed, answer, unknownFields = ufReject)
   parsed.output[1].arguments = """{"q":"nim","future":true}"""
   doAssert parseFirstCallArgs(parsed, args)
-  doAssert not parseFirstCallArgs(parsed, args, unknownFields = ufReject)
 
   parsed.output.add(ResponseOutput(
     `type`: ResponseOutputKind.message,
@@ -364,11 +362,6 @@ block parse_and_access:
     ResponseOutputPart
   )
   doAssert futureContent.`type` == ResponseOutputPartType.unknown
-
-block unknown_field_policy:
-  var parsed: ResponseResult
-  doAssert responseParse(GoodResponse, parsed)
-  doAssert not responseParse(GoodResponse, parsed, unknownFields = ufReject)
 
 block parse_failure:
   var parsed: ResponseResult
