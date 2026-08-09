@@ -173,15 +173,17 @@ proc testBatchParseAndAccessors() =
   doAssert outputFileId(parsed) == "file-cvaTdG"
   doAssert hasErrorFile(parsed)
   doAssert errorFileId(parsed) == "file-HOWS94"
+  doAssert hasRequestCounts(parsed)
+  doAssert requestCountsOf(parsed).total == 100
   doAssert totalRequests(parsed) == 100
   doAssert completedRequests(parsed) == 95
   doAssert failedRequests(parsed) == 5
   doAssert inputTokens(parsed) == 1000
   doAssert outputTokens(parsed) == 200
   doAssert totalTokens(parsed) == 1200
-  doAssert parsed.usage.isSome
-  doAssert parsed.usage.get.input_tokens_details.cached_tokens == 960
-  doAssert parsed.usage.get.output_tokens_details.reasoning_tokens == 0
+  doAssert hasUsage(parsed)
+  doAssert usageOf(parsed).input_tokens_details.cached_tokens == 960
+  doAssert usageOf(parsed).output_tokens_details.reasoning_tokens == 0
   doAssert cachedInputTokens(parsed) == 960
   doAssert reasoningTokens(parsed) == 0
   doAssert completedAt(parsed) == 1711493163
@@ -200,9 +202,11 @@ proc testBatchParseAndAccessors() =
   doAssert not hasMetadata(validating)
   doAssert not hasRequestCounts(validating)
   doAssert not hasUsage(validating)
-  doAssert totalRequests(validating) == 0
-  doAssert inputTokens(validating) == 0
-  doAssert totalTokens(validating) == 0
+  expectValueError(requestCountsOf(validating))
+  expectValueError(totalRequests(validating))
+  expectValueError(inputTokens(validating))
+  expectValueError(totalTokens(validating))
+  expectValueError(usageOf(validating))
 
   var failed: Batch
   doAssert batchParse(FailedBatchResponse, failed)

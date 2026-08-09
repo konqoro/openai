@@ -180,40 +180,42 @@ proc metadataOf*(x: Batch): lent RawJson =
 proc hasRequestCounts*(x: Batch): bool {.inline.} =
   x.request_counts.isSome
 
+proc requestCountsOf*(x: Batch): lent BatchCounts {.inline.} =
+  if x.request_counts.isNone:
+    raiseBatchAccessorError("batch has no request counts")
+  result = x.request_counts.get
+
 proc totalRequests*(x: Batch): int {.inline.} =
-  if x.request_counts.isSome:
-    result = x.request_counts.get.total
+  x.requestCountsOf().total
 
 proc completedRequests*(x: Batch): int {.inline.} =
-  if x.request_counts.isSome:
-    result = x.request_counts.get.completed
+  x.requestCountsOf().completed
 
 proc failedRequests*(x: Batch): int {.inline.} =
-  if x.request_counts.isSome:
-    result = x.request_counts.get.failed
+  x.requestCountsOf().failed
 
 proc hasUsage*(x: Batch): bool {.inline.} =
   x.usage.isSome
 
+proc usageOf*(x: Batch): lent BatchUsage {.inline.} =
+  if x.usage.isNone:
+    raiseBatchAccessorError("batch has no usage data")
+  result = x.usage.get
+
 proc inputTokens*(x: Batch): int {.inline.} =
-  if x.usage.isSome:
-    result = x.usage.get.input_tokens
+  x.usageOf().input_tokens
 
 proc outputTokens*(x: Batch): int {.inline.} =
-  if x.usage.isSome:
-    result = x.usage.get.output_tokens
+  x.usageOf().output_tokens
 
 proc totalTokens*(x: Batch): int {.inline.} =
-  if x.usage.isSome:
-    result = x.usage.get.total_tokens
+  x.usageOf().total_tokens
 
 proc cachedInputTokens*(x: Batch): int {.inline.} =
-  if x.usage.isSome:
-    result = x.usage.get.input_tokens_details.cached_tokens
+  x.usageOf().input_tokens_details.cached_tokens
 
 proc reasoningTokens*(x: Batch): int {.inline.} =
-  if x.usage.isSome:
-    result = x.usage.get.output_tokens_details.reasoning_tokens
+  x.usageOf().output_tokens_details.reasoning_tokens
 
 proc hasOutputResponse*(x: BatchOutputLine): bool {.inline.} =
   x.response.isSome

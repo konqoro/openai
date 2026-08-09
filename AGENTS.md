@@ -91,9 +91,9 @@ contract materially clearer. Call out any such change in the handoff.
   meanings, or when no sound sentinel exists.
 - Do not expose an `Option[T]` from a convenience accessor merely because the schema stores one.
   Prefer `hasX` plus a strict `x`/`xOf` accessor that raises a clear `ValueError` when absent.
-- A scalar accessor may return a documented sentinel such as `0` when that value cannot be a valid
-  result and the library consistently treats it as absence. Do not silently default strings,
-  objects, sequences, IDs, or payloads where the fallback could be mistaken for real data.
+- A scalar accessor may return a documented sentinel such as `0` only when that value cannot be a
+  valid result and the library consistently treats it as absence. Do not silently default values
+  such as token or request counts where zero is meaningful; expose `hasX` plus a strict accessor.
 
 ## JSON Writing
 
