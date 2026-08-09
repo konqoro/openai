@@ -75,24 +75,21 @@ proc responseContentParts*(
     parts: parts
   )
 
-type ResponseInputMessageWire = object
-  role: ResponseInputRole
-  content: ResponseContent
-
-proc responseMessageText*(role: ResponseInputRole; text: sink string): RawJson =
+proc responseMessageText*(role: ResponseInputRole;
+    text: sink string): ResponseInputMessage =
   ## Creates a message input item with string content.
-  RawJson(toJson(ResponseInputMessageWire(
+  ResponseInputMessage(
     role: role,
     content: responseContentText(text)
-  )))
+  )
 
 proc responseMessageParts*(role: ResponseInputRole;
-    parts: sink seq[ResponseInputContent]): RawJson =
+    parts: sink seq[ResponseInputContent]): ResponseInputMessage =
   ## Creates a message input item with typed content parts.
-  RawJson(toJson(ResponseInputMessageWire(
+  ResponseInputMessage(
     role: role,
     content: responseContentParts(parts)
-  )))
+  )
 
 proc responseFunctionOutput*(callId: sink string;
     output: sink string): ResponseFunctionOutput =
@@ -121,36 +118,26 @@ proc responseFunctionOutputJson*[T](callId: sink string;
     output: responseContentText(toJson(output))
   )
 
-type ResponseFunctionToolWire = object
-  `type`: string
-  name: string
-  description: string
-  parameters: RawJson
-  strict: bool
-
-type ResponseNamedToolChoiceWire = object
-  `type`: string
-  name: string
-
 proc responseFunctionTool*(name: sink string; description: sink string = "";
-    parameters: sink RawJson = EmptyResponseObjectSchema; strict = true): RawJson =
+    parameters: sink RawJson = EmptyResponseObjectSchema;
+    strict = true): ResponseFunctionTool =
   ## Creates a function tool definition.
-  RawJson(toJson(ResponseFunctionToolWire(
-    `type`: "function",
+  ResponseFunctionTool(
+    `type`: ResponseToolType.function,
     name: name,
     description: description,
     parameters: parameters,
     strict: strict
-  )))
+  )
 
 proc responseFunctionTool*[TSchema](name: sink string; description: sink string;
-    parametersSchema: TSchema; strict = true): RawJson =
+    parametersSchema: TSchema; strict = true): ResponseFunctionTool =
   ## Creates a function tool definition from a serializable schema value.
   responseFunctionTool(name, description, RawJson(toJson(parametersSchema)), strict)
 
-proc responseToolChoiceFunction*(name: sink string): RawJson =
+proc responseToolChoiceFunction*(name: sink string): ResponseNamedToolChoice =
   ## Requires the model to call the named function tool.
-  RawJson(toJson(ResponseNamedToolChoiceWire(`type`: "function", name: name)))
+  ResponseNamedToolChoice(`type`: ResponseToolType.function, name: name)
 
 proc responseFormatJsonSchema*(name: sink string; schema: sink RawJson;
     description: sink string = ""; strict = true): ResponseTextFormat =
@@ -223,6 +210,24 @@ proc responseParse*(body: string; dst: var ResponseCreateResult;
 proc raiseResponseAccessorError(message: string) {.noinline, noreturn.} =
   raise newException(ValueError, message)
 
+proc raiseInvalidOutputIndex(i, outputCount: int) {.inline, noreturn.} =
+  raiseResponseAccessorError("output item index " & $i &
+    " out of range for " & $outputCount & " output items")
+
+proc raiseNoTextPartsAtOutput(i: int) {.inline, noreturn.} =
+  raiseResponseAccessorError("output item index " & $i & " has no output text")
+
+proc ensureOutputIndex(outputCount, i: int) {.inline.} =
+  if i < 0 or i >= outputCount:
+    raiseInvalidOutputIndex(i, outputCount)
+
+proc firstNonEmptyTextPartIndex(item: ResponseOutputItem; i: int): int =
+  for partIdx in 0..<item.content.len:
+    if item.content[partIdx].`type` == ResponseOutputContentType.output_text and
+        item.content[partIdx].text.len > 0:
+      return partIdx
+  raiseNoTextPartsAtOutput(i)
+
 proc idOf*(x: ResponseCreateResult): lent string {.inline.} =
   result = x.id
 
@@ -241,87 +246,81 @@ proc createdAt*(x: ResponseCreateResult): float {.inline.} =
 proc outputItems*(x: ResponseCreateResult): int {.inline.} =
   x.output.len
 
-proc firstText*(x: ResponseCreateResult): lent string =
-  ## Returns the first non-empty output-text part.
-  for itemIdx in 0..<x.output.len:
-    for partIdx in 0..<x.output[itemIdx].content.len:
-      if x.output[itemIdx].content[partIdx].`type` == "output_text" and
-          x.output[itemIdx].content[partIdx].text.len > 0:
-        return x.output[itemIdx].content[partIdx].text
-  raiseResponseAccessorError("response has no output text")
+proc firstText*(x: ResponseCreateResult; i = 0): lent string =
+  ## Returns the first non-empty output-text part of output item `i`.
+  ensureOutputIndex(x.output.len, i)
+  let partIdx = firstNonEmptyTextPartIndex(x.output[i], i)
+  result = x.output[i].content[partIdx].text
 
-proc firstText*(x: var ResponseCreateResult): var string =
-  ## Returns a mutable view of the first non-empty output-text part.
-  for itemIdx in 0..<x.output.len:
-    for partIdx in 0..<x.output[itemIdx].content.len:
-      if x.output[itemIdx].content[partIdx].`type` == "output_text" and
-          x.output[itemIdx].content[partIdx].text.len > 0:
-        return x.output[itemIdx].content[partIdx].text
-  raiseResponseAccessorError("response has no output text")
+proc firstText*(x: var ResponseCreateResult; i = 0): var string =
+  ## Returns a mutable view of the first non-empty output-text part of output item `i`.
+  ensureOutputIndex(x.output.len, i)
+  let partIdx = firstNonEmptyTextPartIndex(x.output[i], i)
+  result = x.output[i].content[partIdx].text
 
-proc parseFirstTextJson*[T](x: ResponseCreateResult; dst: var T;
+proc parseFirstTextJson*[T](x: ResponseCreateResult; dst: var T; i = 0;
     unknownFields: UnknownFieldPolicy = ufSkip): bool =
-  ## Parses the first output text as `T`.
+  ## Parses the first output text of output item `i` as `T`.
   try:
-    dst = fromJson(x.firstText(), T, unknownFields = unknownFields)
+    dst = fromJson(x.firstText(i), T, unknownFields = unknownFields)
     result = true
   except CatchableError:
     result = false
 
-proc allTextParts*(x: ResponseCreateResult): seq[string] =
-  ## Returns all output-text parts in response order.
+proc allTextParts*(x: ResponseCreateResult; i = 0): seq[string] =
+  ## Returns all output-text parts of output item `i`.
   result = @[]
-  for item in x.output:
-    for part in item.content:
-      if part.`type` == "output_text":
-        result.add(part.text)
+  ensureOutputIndex(x.output.len, i)
+  for part in x.output[i].content:
+    if part.`type` == ResponseOutputContentType.output_text:
+      result.add(part.text)
 
 proc functionCalls*(x: ResponseCreateResult): seq[ResponseOutputItem] =
   ## Returns all function-call output items in response order.
   result = @[]
   for item in x.output:
-    if item.`type` == "function_call":
+    if item.`type` == ResponseOutputItemType.function_call:
       result.add(item)
 
 proc hasFunctionCalls*(x: ResponseCreateResult): bool =
   ## Returns whether the response contains a function-call output item.
   for item in x.output:
-    if item.`type` == "function_call":
+    if item.`type` == ResponseOutputItemType.function_call:
       return true
 
 proc firstCallId*(x: ResponseCreateResult): lent string =
   for i in 0..<x.output.len:
-    if x.output[i].`type` == "function_call":
+    if x.output[i].`type` == ResponseOutputItemType.function_call:
       return x.output[i].call_id
   raiseResponseAccessorError("response has no function calls")
 
 proc firstCallId*(x: var ResponseCreateResult): var string =
   for i in 0..<x.output.len:
-    if x.output[i].`type` == "function_call":
+    if x.output[i].`type` == ResponseOutputItemType.function_call:
       return x.output[i].call_id
   raiseResponseAccessorError("response has no function calls")
 
 proc firstCallName*(x: ResponseCreateResult): lent string =
   for i in 0..<x.output.len:
-    if x.output[i].`type` == "function_call":
+    if x.output[i].`type` == ResponseOutputItemType.function_call:
       return x.output[i].name
   raiseResponseAccessorError("response has no function calls")
 
 proc firstCallName*(x: var ResponseCreateResult): var string =
   for i in 0..<x.output.len:
-    if x.output[i].`type` == "function_call":
+    if x.output[i].`type` == ResponseOutputItemType.function_call:
       return x.output[i].name
   raiseResponseAccessorError("response has no function calls")
 
 proc firstCallArgs*(x: ResponseCreateResult): lent string =
   for i in 0..<x.output.len:
-    if x.output[i].`type` == "function_call":
+    if x.output[i].`type` == ResponseOutputItemType.function_call:
       return x.output[i].arguments
   raiseResponseAccessorError("response has no function calls")
 
 proc firstCallArgs*(x: var ResponseCreateResult): var string =
   for i in 0..<x.output.len:
-    if x.output[i].`type` == "function_call":
+    if x.output[i].`type` == ResponseOutputItemType.function_call:
       return x.output[i].arguments
   raiseResponseAccessorError("response has no function calls")
 

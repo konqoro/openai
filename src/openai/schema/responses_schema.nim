@@ -2,7 +2,7 @@
 ##
 ## Deprecated API fields are deliberately absent from this schema.
 
-import std/options
+import std/[options, strutils]
 export options
 import jsonx
 import jsonx/[parsejson, streams]
@@ -44,6 +44,10 @@ type
     of parts:
       parts*: seq[ResponseInputContent]
 
+  ResponseInputMessage* = object
+    role*: ResponseInputRole
+    content*: ResponseContent
+
   ResponseFunctionOutputType* = enum
     function_call_output
 
@@ -51,6 +55,20 @@ type
     `type`*: ResponseFunctionOutputType
     call_id*: string
     output*: ResponseContent
+
+  ResponseToolType* = enum
+    function
+
+  ResponseFunctionTool* = object
+    `type`*: ResponseToolType
+    name*: string
+    description*: string
+    parameters*: RawJson
+    strict*: bool
+
+  ResponseNamedToolChoice* = object
+    `type`*: ResponseToolType
+    name*: string
 
   ResponseTextFormatType* = enum
     text, json_schema
@@ -136,16 +154,26 @@ type
     output_tokens_details*: ResponseOutputTokensDetails
     total_tokens*: int
 
+  ResponseOutputContentType* {.pure.} = enum
+    unknown = ""
+    output_text
+    refusal
+
   ResponseOutputContent* = object
-    `type`*: string
+    `type`*: ResponseOutputContentType
     text*: string
     refusal*: string
     annotations*: seq[RawJson]
     logprobs*: seq[RawJson]
 
+  ResponseOutputItemType* {.pure.} = enum
+    unknown = ""
+    message
+    function_call
+
   ResponseOutputItem* = object
     id*: string
-    `type`*: string
+    `type`*: ResponseOutputItemType
     status*: string
     role*: string
     content*: seq[ResponseOutputContent]
@@ -190,6 +218,24 @@ proc writeJson*(s: Stream; x: ResponseInput) =
   of ResponseInputKind.items:
     writeJson(s, x.items)
 
+proc readOutputType[T: enum](dst: var T; p: var JsonParser; unknown: T) =
+  if p.tok != tkString:
+    raiseParseErr(p, "string for an output type")
+  let value = p.a
+  discard getTok(p)
+  try:
+    dst = parseEnum[T](value)
+  except ValueError:
+    dst = unknown
+
+proc readJson*(dst: var ResponseOutputContentType; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
+  readOutputType(dst, p, ResponseOutputContentType.unknown)
+
+proc readJson*(dst: var ResponseOutputItemType; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
+  readOutputType(dst, p, ResponseOutputItemType.unknown)
+
 proc readJson*(dst: var ResponseContent; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
   if p.tok == tkString:
@@ -232,6 +278,20 @@ proc writeJson*(s: Stream; x: ResponseContent) =
     writeJson(s, x.text)
   of ResponseContentKind.parts:
     writeJson(s, x.parts)
+
+proc writeJson*(s: Stream; x: ResponseFunctionTool) =
+  var comma = false
+  streams.write(s, "{")
+  writeJsonField(s, "type", x.`type`)
+  writeJsonField(s, "name", x.name)
+  if x.description.len > 0:
+    writeJsonField(s, "description", x.description)
+  if string(x.parameters).len > 0:
+    writeJsonField(s, "parameters", x.parameters)
+  else:
+    writeJsonField(s, "parameters", EmptyResponseObjectSchema)
+  writeJsonField(s, "strict", x.strict)
+  streams.write(s, "}")
 
 proc writeJson*(s: Stream; x: ResponseTextFormat) =
   var comma = false

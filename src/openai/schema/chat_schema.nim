@@ -137,6 +137,13 @@ type
     `type`*: ChatToolType
     function*: ChatFunctionDefinition
 
+  ChatNamedFunction* = object
+    name*: string
+
+  ChatNamedToolChoice* = object
+    `type`*: ChatToolType
+    function*: ChatNamedFunction
+
   ChatResponseFormatJsonSchema* = object
     name*: string
     description*: string

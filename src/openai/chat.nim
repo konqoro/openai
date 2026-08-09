@@ -156,20 +156,12 @@ proc chatFunctionTool*[TSchema](name: sink string; parametersSchema: TSchema;
   ## Creates a function tool without a description.
   chatFunctionTool(name, "", RawJson(toJson(parametersSchema)), strict)
 
-type
-  ChatNamedFunctionWire = object
-    name: string
-
-  ChatNamedToolChoiceWire = object
-    `type`: string
-    function: ChatNamedFunctionWire
-
-proc chatToolChoiceFunction*(name: sink string): RawJson =
+proc chatToolChoiceFunction*(name: sink string): ChatNamedToolChoice =
   ## Requires the model to call the named function tool.
-  RawJson(toJson(ChatNamedToolChoiceWire(
-    `type`: "function",
-    function: ChatNamedFunctionWire(name: name)
-  )))
+  ChatNamedToolChoice(
+    `type`: ChatToolType.function,
+    function: ChatNamedFunction(name: name)
+  )
 
 let
   chatFormatText* = ChatResponseFormat(`type`: ChatResponseFormatType.text)

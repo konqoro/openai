@@ -143,8 +143,23 @@ block message_content:
       unknownFields = ufReject
     )
 
-  doAssert string(responseMessageText(ResponseInputRole.user, "Hello")) ==
+  let message = responseMessageText(ResponseInputRole.user, "Hello")
+  doAssert message.role == ResponseInputRole.user
+  doAssert message.content.kind == ResponseContentKind.text
+  doAssert toJson(message) ==
     """{"role":"user","content":"Hello"}"""
+
+  let decodedMessage = fromJson(
+    """{"role":"user","content":"decoded","future":true}""",
+    ResponseInputMessage
+  )
+  doAssert decodedMessage.content.text == "decoded"
+  doAssertRaises JsonParsingError:
+    discard fromJson(
+      """{"role":"user","content":"decoded","future":true}""",
+      ResponseInputMessage,
+      unknownFields = ufReject
+    )
 
 block message_parts_and_tools:
   let message = responseMessageParts(ResponseInputRole.user, @[
@@ -157,10 +172,17 @@ block message_parts_and_tools:
     "Look up a value",
     RawJson("""{"type":"object","properties":{"q":{"type":"string"}}}""")
   )
+  doAssert tool.`type` == ResponseToolType.function
+  doAssert tool.name == "lookup"
+  doAssert tool.description == "Look up a value"
+  doAssert tool.strict
+  doAssert toJson(responseFunctionTool("empty")) ==
+    """{"type":"function","name":"empty","parameters":""" &
+    """{"type":"object","properties":{}},"strict":true}"""
   let params = responseCreate(
     "gpt-5.6-luna",
-    responseInputItems(@[message]),
-    tools = @[tool],
+    responseInputItems(@[RawJson(toJson(message))]),
+    tools = @[RawJson(toJson(tool))],
     toolChoice = ResponseToolChoiceRequired,
     text = ResponseTextConfig(format: responseFormatJsonSchema(
       "answer", RawJson("""{"type":"object"}""")
@@ -172,8 +194,23 @@ block message_parts_and_tools:
   doAssert body.contains("\"type\":\"input_file\"")
   doAssert body.contains("\"tool_choice\":\"required\"")
   doAssert body.contains("\"type\":\"json_schema\"")
-  doAssert string(responseToolChoiceFunction("lookup")) ==
+  let namedChoice = responseToolChoiceFunction("lookup")
+  doAssert namedChoice.`type` == ResponseToolType.function
+  doAssert namedChoice.name == "lookup"
+  doAssert toJson(namedChoice) ==
     """{"type":"function","name":"lookup"}"""
+
+  let decodedChoice = fromJson(
+    """{"type":"function","name":"decoded","future":true}""",
+    ResponseNamedToolChoice
+  )
+  doAssert decodedChoice.name == "decoded"
+  doAssertRaises JsonParsingError:
+    discard fromJson(
+      """{"type":"function","name":"decoded","future":true}""",
+      ResponseNamedToolChoice,
+      unknownFields = ufReject
+    )
 
 block function_outputs:
   let textOutput = responseFunctionOutput("call_1", "done")
@@ -231,8 +268,17 @@ block parse_and_access:
   doAssert modelOf(parsed) == "gpt-5.6-luna"
   doAssert createdAt(parsed) == 1786200000.0
   doAssert outputItems(parsed) == 2
+  doAssert parsed.output[0].`type` == ResponseOutputItemType.message
+  doAssert parsed.output[0].content[0].`type` ==
+    ResponseOutputContentType.output_text
+  doAssert parsed.output[1].`type` == ResponseOutputItemType.function_call
   doAssert firstText(parsed) == "{\"answer\":42}"
   doAssert allTextParts(parsed) == @["{\"answer\":42}"]
+  doAssert allTextParts(parsed, i = 1).len == 0
+  doAssertRaises ValueError:
+    discard firstText(parsed, i = -1)
+  doAssertRaises ValueError:
+    discard firstText(parsed, i = 1)
   doAssert firstCallId(parsed) == "call_1"
   doAssert firstCallName(parsed) == "lookup"
   doAssert firstCallArgs(parsed) == "{\"q\":\"nim\"}"
@@ -258,6 +304,40 @@ block parse_and_access:
   doAssert parseFirstCallArgs(parsed, args)
   doAssert not parseFirstCallArgs(parsed, args, unknownFields = ufReject)
 
+  parsed.output.add(ResponseOutputItem(
+    `type`: ResponseOutputItemType.message,
+    content: @[
+      ResponseOutputContent(
+        `type`: ResponseOutputContentType.refusal,
+        refusal: "no"
+      ),
+      ResponseOutputContent(
+        `type`: ResponseOutputContentType.output_text,
+        text: ""
+      ),
+      ResponseOutputContent(
+        `type`: ResponseOutputContentType.output_text,
+        text: "later"
+      )
+    ]
+  ))
+  doAssert firstText(parsed, i = 2) == "later"
+  doAssert allTextParts(parsed, i = 2) == @["", "later"]
+  firstText(parsed, i = 2) = "changed"
+  doAssert firstText(parsed, i = 2) == "changed"
+
+  let futureItem = fromJson(
+    """{"id":"future_1","type":"future_output_item","status":"completed"}""",
+    ResponseOutputItem
+  )
+  doAssert futureItem.`type` == ResponseOutputItemType.unknown
+
+  let futureContent = fromJson(
+    """{"type":"future_content","text":"future"}""",
+    ResponseOutputContent
+  )
+  doAssert futureContent.`type` == ResponseOutputContentType.unknown
+
 block unknown_field_policy:
   var parsed: ResponseCreateResult
   doAssert responseParse(GoodResponse, parsed)
@@ -276,6 +356,10 @@ block missing_accessors:
   )
   doAssertRaises ValueError:
     discard firstText(parsed)
+  doAssertRaises ValueError:
+    discard firstText(parsed, i = 1)
+  doAssertRaises ValueError:
+    discard allTextParts(parsed)
   doAssertRaises ValueError:
     discard firstCallId(parsed)
   doAssertRaises ValueError:

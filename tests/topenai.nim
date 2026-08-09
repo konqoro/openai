@@ -1,5 +1,6 @@
 import relay
 import jsonx
+import jsonx/parsejson
 import openai/chat
 import std/strutils
 
@@ -443,8 +444,22 @@ proc testChatCreateSerializationFieldInclusionRules() =
   doAssert toolsAutoChoiceJson.contains("\"tool_choice\":\"auto\"")
 
   let namedChoice = chatToolChoiceFunction("lookup")
-  doAssert string(namedChoice) ==
+  doAssert namedChoice.`type` == ChatToolType.function
+  doAssert namedChoice.function.name == "lookup"
+  doAssert toJson(namedChoice) ==
     """{"type":"function","function":{"name":"lookup"}}"""
+
+  let decodedChoice = fromJson(
+    """{"type":"function","function":{"name":"decoded"},"future":true}""",
+    ChatNamedToolChoice
+  )
+  doAssert decodedChoice.function.name == "decoded"
+  doAssertRaises JsonParsingError:
+    discard fromJson(
+      """{"type":"function","function":{"name":"decoded"},"future":true}""",
+      ChatNamedToolChoice,
+      unknownFields = ufReject
+    )
 
 proc testAssistantToolCallMessageSerialization() =
   let toolCall = ChatCompletionMessageToolCall(
