@@ -34,15 +34,23 @@ type
     file_data*: string
     detail*: string
 
-  ResponseMessageContentKind* = enum
+  ResponseContentKind* = enum
     text, parts
 
-  ResponseMessageContent* = object
-    case kind*: ResponseMessageContentKind
+  ResponseContent* = object
+    case kind*: ResponseContentKind
     of text:
       text*: string
     of parts:
       parts*: seq[ResponseInputContent]
+
+  ResponseFunctionOutputType* = enum
+    function_call_output
+
+  ResponseFunctionOutput* = object
+    `type`*: ResponseFunctionOutputType
+    call_id*: string
+    output*: ResponseContent
 
   ResponseTextFormatType* = enum
     text, json_schema
@@ -182,13 +190,13 @@ proc writeJson*(s: Stream; x: ResponseInput) =
   of ResponseInputKind.items:
     writeJson(s, x.items)
 
-proc readJson*(dst: var ResponseMessageContent; p: var JsonParser;
+proc readJson*(dst: var ResponseContent; p: var JsonParser;
     unknownFields: UnknownFieldPolicy) =
   if p.tok == tkString:
-    dst = ResponseMessageContent(kind: ResponseMessageContentKind.text)
+    dst = ResponseContent(kind: ResponseContentKind.text)
     readJson(dst.text, p, unknownFields)
   elif p.tok == tkBracketLe:
-    dst = ResponseMessageContent(kind: ResponseMessageContentKind.parts)
+    dst = ResponseContent(kind: ResponseContentKind.parts)
     readJson(dst.parts, p, unknownFields)
   else:
     raiseParseErr(p, "string or array")
@@ -218,11 +226,11 @@ proc writeJson*(s: Stream; x: ResponseInputContent) =
         writeJsonField(s, "filename", x.filename)
   streams.write(s, "}")
 
-proc writeJson*(s: Stream; x: ResponseMessageContent) =
+proc writeJson*(s: Stream; x: ResponseContent) =
   case x.kind
-  of ResponseMessageContentKind.text:
+  of ResponseContentKind.text:
     writeJson(s, x.text)
-  of ResponseMessageContentKind.parts:
+  of ResponseContentKind.parts:
     writeJson(s, x.parts)
 
 proc writeJson*(s: Stream; x: ResponseTextFormat) =

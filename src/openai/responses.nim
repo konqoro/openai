@@ -60,24 +60,24 @@ proc responsePartFileData*(data, filename: sink string): ResponseInputContent =
     filename: filename
   )
 
-proc responseContentText*(text: sink string): ResponseMessageContent =
-  ## Creates message content from text.
-  ResponseMessageContent(
-    kind: ResponseMessageContentKind.text,
+proc responseContentText*(text: sink string): ResponseContent =
+  ## Creates message or function output content from text.
+  ResponseContent(
+    kind: ResponseContentKind.text,
     text: text
   )
 
 proc responseContentParts*(
-    parts: sink seq[ResponseInputContent]): ResponseMessageContent =
-  ## Creates message content from typed parts.
-  ResponseMessageContent(
-    kind: ResponseMessageContentKind.parts,
+    parts: sink seq[ResponseInputContent]): ResponseContent =
+  ## Creates message or function output content from typed parts.
+  ResponseContent(
+    kind: ResponseContentKind.parts,
     parts: parts
   )
 
 type ResponseInputMessageWire = object
   role: ResponseInputRole
-  content: ResponseMessageContent
+  content: ResponseContent
 
 proc responseMessageText*(role: ResponseInputRole; text: sink string): RawJson =
   ## Creates a message input item with string content.
@@ -94,26 +94,32 @@ proc responseMessageParts*(role: ResponseInputRole;
     content: responseContentParts(parts)
   )))
 
-type ResponseFunctionOutputWire = object
-  `type`: string
-  call_id: string
-  output: string
-
-proc responseFunctionOutput*(callId: sink string; output: sink string): RawJson =
+proc responseFunctionOutput*(callId: sink string;
+    output: sink string): ResponseFunctionOutput =
   ## Creates a function-call output item containing text.
-  RawJson(toJson(ResponseFunctionOutputWire(
-    `type`: "function_call_output",
+  ResponseFunctionOutput(
+    `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
-    output: output
-  )))
+    output: responseContentText(output)
+  )
 
-proc responseFunctionOutputJson*[T](callId: sink string; output: T): RawJson =
-  ## Creates a function-call output item containing JSON encoded as text.
-  RawJson(toJson(ResponseFunctionOutputWire(
-    `type`: "function_call_output",
+proc responseFunctionOutputParts*(callId: sink string;
+    output: sink seq[ResponseInputContent]): ResponseFunctionOutput =
+  ## Creates a function-call output item containing typed content parts.
+  ResponseFunctionOutput(
+    `type`: ResponseFunctionOutputType.function_call_output,
     call_id: callId,
-    output: toJson(output)
-  )))
+    output: responseContentParts(output)
+  )
+
+proc responseFunctionOutputJson*[T](callId: sink string;
+    output: T): ResponseFunctionOutput =
+  ## Creates a function-call output item containing JSON encoded as text.
+  ResponseFunctionOutput(
+    `type`: ResponseFunctionOutputType.function_call_output,
+    call_id: callId,
+    output: responseContentText(toJson(output))
+  )
 
 type ResponseFunctionToolWire = object
   `type`: string

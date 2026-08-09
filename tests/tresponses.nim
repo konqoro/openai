@@ -110,7 +110,7 @@ block simple_text_request:
 
 block message_content:
   let text = responseContentText("Hello")
-  doAssert text.kind == ResponseMessageContentKind.text
+  doAssert text.kind == ResponseContentKind.text
   doAssert text.text == "Hello"
   doAssert toJson(text) == "\"Hello\""
 
@@ -118,28 +118,28 @@ block message_content:
     responsePartText("What is shown?"),
     responsePartImageUrl("https://example.com/image.png")
   ])
-  doAssert parts.kind == ResponseMessageContentKind.parts
+  doAssert parts.kind == ResponseContentKind.parts
   doAssert parts.parts.len == 2
   doAssert toJson(parts) ==
     """[{"type":"input_text","text":"What is shown?"},""" &
     """{"type":"input_image","image_url":"https://example.com/image.png","detail":"auto"}]"""
 
-  let decodedText = fromJson("\"decoded\"", ResponseMessageContent)
-  doAssert decodedText.kind == ResponseMessageContentKind.text
+  let decodedText = fromJson("\"decoded\"", ResponseContent)
+  doAssert decodedText.kind == ResponseContentKind.text
   doAssert decodedText.text == "decoded"
   doAssertRaises JsonParsingError:
-    discard fromJson("null", ResponseMessageContent)
+    discard fromJson("null", ResponseContent)
 
   let decodedParts = fromJson(
     """[{"type":"input_text","text":"decoded","future":true}]""",
-    ResponseMessageContent
+    ResponseContent
   )
-  doAssert decodedParts.kind == ResponseMessageContentKind.parts
+  doAssert decodedParts.kind == ResponseContentKind.parts
   doAssert decodedParts.parts[0].text == "decoded"
   doAssertRaises JsonParsingError:
     discard fromJson(
       """[{"type":"input_text","text":"decoded","future":true}]""",
-      ResponseMessageContent,
+      ResponseContent,
       unknownFields = ufReject
     )
 
@@ -176,10 +176,40 @@ block message_parts_and_tools:
     """{"type":"function","name":"lookup"}"""
 
 block function_outputs:
-  doAssert string(responseFunctionOutput("call_1", "done")) ==
+  let textOutput = responseFunctionOutput("call_1", "done")
+  doAssert textOutput.call_id == "call_1"
+  doAssert textOutput.output.kind == ResponseContentKind.text
+  doAssert textOutput.output.text == "done"
+  doAssert toJson(textOutput) ==
     """{"type":"function_call_output","call_id":"call_1","output":"done"}"""
-  doAssert string(responseFunctionOutputJson("call_1", Answer(answer: 42))) ==
+
+  let jsonOutput = responseFunctionOutputJson("call_1", Answer(answer: 42))
+  doAssert jsonOutput.output.text == "{\"answer\":42}"
+  doAssert toJson(jsonOutput) ==
     """{"type":"function_call_output","call_id":"call_1","output":"{\"answer\":42}"}"""
+
+  let partsOutput = responseFunctionOutputParts("call_1", @[
+    responsePartText("done"),
+    responsePartImageFile("file_1")
+  ])
+  doAssert partsOutput.output.kind == ResponseContentKind.parts
+  doAssert toJson(partsOutput) ==
+    """{"type":"function_call_output","call_id":"call_1","output":[""" &
+    """{"type":"input_text","text":"done"},""" &
+    """{"type":"input_image","file_id":"file_1","detail":"auto"}]}"""
+
+  let decodedOutput = fromJson(
+    """{"type":"function_call_output","call_id":"call_2","output":"ok","future":true}""",
+    ResponseFunctionOutput
+  )
+  doAssert decodedOutput.call_id == "call_2"
+  doAssert decodedOutput.output.text == "ok"
+  doAssertRaises JsonParsingError:
+    discard fromJson(
+      """{"type":"function_call_output","call_id":"call_2","output":"ok","future":true}""",
+      ResponseFunctionOutput,
+      unknownFields = ufReject
+    )
 
 block request_and_batch:
   let cfg = sampleConfig()
