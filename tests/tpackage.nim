@@ -6,5 +6,5 @@ block package_entry:
   let cfg = OpenAIConfig(apiKey: "sk-test")
   doAssert cfg.apiKey == "sk-test"
 
-  let response = ErrorResponse(error: ApiError(message: "bad request"))
+  let response = OpenAIErrorResponse(error: OpenAIError(message: "bad request"))
   doAssert errorOf(response).message == "bad request"

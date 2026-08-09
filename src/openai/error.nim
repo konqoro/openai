@@ -6,34 +6,25 @@ import jsonx
 import jsonx/parsejson
 
 type
-  ApiError* = object
+  OpenAIError* = object
     message*: string
     `type`*: string
     param*: Option[string]
     code*: Option[string]
 
-  ErrorResponse* = object
-    error*: ApiError
+  OpenAIErrorResponse* = object
+    error*: OpenAIError
 
-template readObjectFields(p: var JsonParser; body: untyped) =
+proc readJson*(dst: var OpenAIErrorResponse; p: var JsonParser;
+    unknownFields: UnknownFieldPolicy) =
+  var foundError = false
   eat(p, tkCurlyLe)
   while p.tok != tkCurlyRi:
     if p.tok != tkString:
       raiseParseErr(p, "string literal as key")
-    let fieldName {.inject.} = p.a
+    let fieldName = p.a
     discard getTok(p)
     eat(p, tkColon)
-    body
-    if p.tok == tkComma:
-      discard getTok(p)
-    elif p.tok != tkCurlyRi:
-      raiseParseErr(p, "comma or closing brace")
-  eat(p, tkCurlyRi)
-
-proc readJson*(dst: var ErrorResponse; p: var JsonParser;
-    unknownFields: UnknownFieldPolicy) =
-  var foundError = false
-  readObjectFields(p):
     case fieldName
     of "error":
       foundError = true
@@ -43,17 +34,22 @@ proc readJson*(dst: var ErrorResponse; p: var JsonParser;
         skipJson(p)
       else:
         raiseParseErr(p, "valid object field")
+    if p.tok == tkComma:
+      discard getTok(p)
+    elif p.tok != tkCurlyRi:
+      raiseParseErr(p, "comma or closing brace")
+  eat(p, tkCurlyRi)
   if not foundError:
     raiseParseErr(p, "error field")
 
-proc errorParse*(body: string; dst: var ErrorResponse): bool =
+proc errorParse*(body: string; dst: var OpenAIErrorResponse): bool =
   ## Parses a forward-compatible error envelope.
   try:
-    dst = fromJson(body, ErrorResponse)
+    dst = fromJson(body, OpenAIErrorResponse)
     result = true
   except CatchableError:
     result = false
 
-proc errorOf*(x: ErrorResponse): lent ApiError =
+proc errorOf*(x: OpenAIErrorResponse): lent OpenAIError =
   ## Returns the parsed API error.
   result = x.error

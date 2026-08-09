@@ -35,7 +35,7 @@ atlas install
 explicitly; this keeps focused helper names such as `partText` unambiguous:
 
 ```nim
-import openai            # OpenAIConfig, OpenAIBaseUrl, and ErrorResponse
+import openai            # OpenAIConfig, OpenAIBaseUrl, and OpenAIErrorResponse
 import openai/responses  # Responses API only
 import openai/chat       # chat completions only
 import openai/batch      # batch API only

@@ -381,5 +381,18 @@ block missing_accessors:
   doAssert allTextParts(parsed).len == 0
   doAssertRaises ValueError:
     discard firstCallId(parsed)
+  doAssert not hasError(parsed)
+  doAssertRaises ValueError:
+    discard errorOf(parsed)
   doAssertRaises ValueError:
     discard inputTokens(parsed)
+
+  var failed: ResponseResult
+  doAssert responseParse(
+    """{"id":"r","object":"response","created_at":1,"status":"failed",""" &
+      """"model":"m","output":[],"error":{"code":"server_error","message":"bad"}}""",
+    failed
+  )
+  doAssert hasError(failed)
+  doAssert errorOf(failed).code == "server_error"
+  doAssert errorOf(failed).message == "bad"

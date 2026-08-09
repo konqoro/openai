@@ -304,6 +304,14 @@ proc parseFirstCallArgs*[T](x: ResponseResult; dst: var T): bool =
   except CatchableError:
     result = false
 
+proc hasError*(x: ResponseResult): bool {.inline.} =
+  x.error.isSome
+
+proc errorOf*(x: ResponseResult): lent ResponseError {.inline.} =
+  if x.error.isNone:
+    raiseResponseAccessorError("response has no error data")
+  result = x.error.get
+
 proc hasUsage*(x: ResponseResult): bool {.inline.} =
   x.usage.isSome
 
