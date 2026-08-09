@@ -96,7 +96,7 @@ type
     created*: int64
     model*: string
     choices*: seq[ChatChoice]
-    usage*: ChatUsage
+    usage*: Option[ChatUsage]
     service_tier*: string
     system_fingerprint*: Option[string]
 

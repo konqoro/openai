@@ -69,6 +69,8 @@ contract materially clearer. Call out any such change in the handoff.
   closed Nim object hierarchy.
 - Do not retain deprecated OpenAI request fields. Implement the current API vocabulary and migration
   target instead of exposing both old and new fields.
+- Do not expose a request parameter for a protocol value that has only one supported value. Encode the
+  fixed value in the writer; add a typed enum only when the API documents multiple supported choices.
 
 ## Unions, Null, and Optionality
 

@@ -11,16 +11,13 @@ export batch_schema
 
 const
   BatchesPath = "/batches"
-  BatchCompletionWindow* = "24h"
 
 proc batchCreate*(inputFileId, endpoint: sink string;
-    completionWindow = BatchCompletionWindow;
     metadata: sink RawJson = RawJson("");
     outputExpiresAfter = BatchOutputExpiry()): BatchParams {.inline.} =
   result = BatchParams(
     input_file_id: inputFileId,
     endpoint: endpoint,
-    completion_window: completionWindow,
     metadata: metadata,
     output_expires_after: outputExpiresAfter
   )

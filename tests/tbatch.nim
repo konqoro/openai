@@ -202,11 +202,16 @@ proc testBatchParseAndAccessors() =
   doAssert not hasMetadata(validating)
   doAssert not hasRequestCounts(validating)
   doAssert not hasUsage(validating)
-  expectValueError(requestCountsOf(validating))
-  expectValueError(totalRequests(validating))
-  expectValueError(inputTokens(validating))
-  expectValueError(totalTokens(validating))
-  expectValueError(usageOf(validating))
+  doAssertRaises ValueError:
+    discard requestCountsOf(validating)
+  doAssertRaises ValueError:
+    discard totalRequests(validating)
+  doAssertRaises ValueError:
+    discard inputTokens(validating)
+  doAssertRaises ValueError:
+    discard totalTokens(validating)
+  doAssertRaises ValueError:
+    discard usageOf(validating)
 
   var failed: Batch
   doAssert batchParse(FailedBatchResponse, failed)

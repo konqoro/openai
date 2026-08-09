@@ -547,7 +547,8 @@ proc testChatParse() =
   doAssert decoded.choices.len == 1
   doAssert decoded.choices[0].message.content.kind == ChatAssistantContentKind.text
   doAssert decoded.choices[0].message.content.text == "Hello"
-  doAssert decoded.usage.total_tokens == 3
+  doAssert decoded.usage.isSome
+  doAssert decoded.usage.get.total_tokens == 3
   doAssert not chatParse(GoodResponse, decoded, unknownFields = ufReject)
 
   var bad: ChatResult
@@ -563,6 +564,8 @@ proc testResponseGettersWithTextContent() =
   doAssert finish(parsed) == ChatFinishReason.stop
   doAssert firstText(parsed) == "Hello"
   doAssert allTextParts(parsed).len == 0
+  doAssert hasUsage(parsed)
+  doAssert usageOf(parsed).total_tokens == 3
   doAssert inputTokens(parsed) == 1
   doAssert outputTokens(parsed) == 2
   doAssert cachedInputTokens(parsed) == 0
@@ -591,9 +594,7 @@ proc testResponseAccessorsRaiseOnMissingChoice() =
   doAssert empty.id == ""
   doAssert empty.model == ""
   doAssert empty.choices.len == 0
-  doAssert inputTokens(empty) == 0
-  doAssert outputTokens(empty) == 0
-  doAssert totalTokens(empty) == 0
+  doAssert not hasUsage(empty)
 
   expectValueError(finish(empty))
   expectValueError(finish(empty, i = 6))
@@ -606,6 +607,18 @@ proc testResponseAccessorsRaiseOnMissingChoice() =
   expectValueError(firstCallId(empty))
   expectValueError(firstCallName(empty))
   expectValueError(firstCallArgs(empty))
+  expectValueError(usageOf(empty))
+  expectValueError(inputTokens(empty))
+  expectValueError(outputTokens(empty))
+  expectValueError(totalTokens(empty))
+
+  var withoutUsage: ChatResult
+  doAssert chatParse(
+    """{"id":"cmpl_no_usage","object":"chat.completion","created":1,"model":"m","choices":[]}""",
+    withoutUsage
+  )
+  doAssert not hasUsage(withoutUsage)
+  expectValueError(inputTokens(withoutUsage))
 
 proc testVarCallsAccessor() =
   var parsed: ChatResult
@@ -746,12 +759,13 @@ proc testToolCallResponseWithNullContent() =
   doAssert parsed.choices[0].message.content.kind == ChatAssistantContentKind.none
   doAssert parsed.choices[0].message.refusal.isNone
   doAssert parsed.choices[0].message.annotations.len == 0
-  doAssert parsed.usage.prompt_tokens_details.cached_tokens == 0
-  doAssert parsed.usage.prompt_tokens_details.cache_write_tokens == 0
-  doAssert parsed.usage.prompt_tokens_details.audio_tokens == 0
-  doAssert parsed.usage.completion_tokens_details.reasoning_tokens == 10
-  doAssert parsed.usage.completion_tokens_details.accepted_prediction_tokens == 0
-  doAssert parsed.usage.completion_tokens_details.rejected_prediction_tokens == 0
+  doAssert parsed.usage.isSome
+  doAssert parsed.usage.get.prompt_tokens_details.cached_tokens == 0
+  doAssert parsed.usage.get.prompt_tokens_details.cache_write_tokens == 0
+  doAssert parsed.usage.get.prompt_tokens_details.audio_tokens == 0
+  doAssert parsed.usage.get.completion_tokens_details.reasoning_tokens == 10
+  doAssert parsed.usage.get.completion_tokens_details.accepted_prediction_tokens == 0
+  doAssert parsed.usage.get.completion_tokens_details.rejected_prediction_tokens == 0
 
 when isMainModule:
   testInputConstructorsCoverage()

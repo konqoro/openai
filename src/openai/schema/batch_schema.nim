@@ -3,6 +3,8 @@ export options
 import jsonx
 import jsonx/streams
 
+const BatchCompletionWindow = "24h"
+
 type
   BatchStatus* = enum
     validating, failed, in_progress, finalizing, completed, expired,
@@ -74,7 +76,6 @@ type
   BatchParams* = object
     input_file_id*: string
     endpoint*: string
-    completion_window*: string
     metadata*: RawJson
     output_expires_after*: BatchOutputExpiry
 
@@ -111,7 +112,7 @@ proc writeJson*(s: Stream; x: BatchParams) =
   streams.write(s, "{")
   writeJsonField(s, "input_file_id", x.input_file_id)
   writeJsonField(s, "endpoint", x.endpoint)
-  writeJsonField(s, "completion_window", x.completion_window)
+  writeJsonField(s, "completion_window", BatchCompletionWindow)
   if string(x.metadata).len > 0:
     writeJsonField(s, "metadata", x.metadata)
   if x.output_expires_after.seconds > 0:

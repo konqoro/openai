@@ -10,7 +10,7 @@ block package_entry:
   doAssert chat.model == "gpt-4.1-mini"
 
   let batchParams = batchCreate("file-1", "/v1/chat/completions")
-  doAssert batchParams.completion_window == "24h"
+  doAssert batchParams.input_file_id == "file-1"
 
   let upload = fileUploadRequest(cfg, "input.jsonl", "batch", "{}")
   doAssert upload.verb == hvPost

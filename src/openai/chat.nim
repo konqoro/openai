@@ -264,20 +264,28 @@ proc firstNonEmptyTextPartIndex(content: ChatAssistantContent; i: int): int =
 proc createdAt*(x: ChatResult): int64 {.inline.} =
   result = x.created
 
+proc hasUsage*(x: ChatResult): bool {.inline.} =
+  x.usage.isSome
+
+proc usageOf*(x: ChatResult): lent ChatUsage {.inline.} =
+  if x.usage.isNone:
+    raiseAccessorValueError("chat completion has no usage data")
+  result = x.usage.get
+
 proc inputTokens*(x: ChatResult): int {.inline.} =
-  result = x.usage.prompt_tokens
+  x.usageOf().prompt_tokens
 
 proc outputTokens*(x: ChatResult): int {.inline.} =
-  result = x.usage.completion_tokens
+  x.usageOf().completion_tokens
 
 proc cachedInputTokens*(x: ChatResult): int {.inline.} =
-  result = x.usage.prompt_tokens_details.cached_tokens
+  x.usageOf().prompt_tokens_details.cached_tokens
 
 proc reasoningTokens*(x: ChatResult): int {.inline.} =
-  result = x.usage.completion_tokens_details.reasoning_tokens
+  x.usageOf().completion_tokens_details.reasoning_tokens
 
 proc totalTokens*(x: ChatResult): int {.inline.} =
-  result = x.usage.total_tokens
+  x.usageOf().total_tokens
 
 proc finish*(x: ChatResult; i = 0): ChatFinishReason {.inline.} =
   ensureChoiceIndex(x.choices.len, i)
