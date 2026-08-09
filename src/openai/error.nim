@@ -22,14 +22,15 @@ proc readJson*(dst: var OpenAIErrorResponse; p: var JsonParser;
   while p.tok != tkCurlyRi:
     if p.tok != tkString:
       raiseParseErr(p, "string literal as key")
-    let fieldName = p.a
-    discard getTok(p)
-    eat(p, tkColon)
-    case fieldName
+    case p.a
     of "error":
       foundError = true
+      discard getTok(p)
+      eat(p, tkColon)
       readJson(dst.error, p, unknownFields)
     else:
+      discard getTok(p)
+      eat(p, tkColon)
       if unknownFields == ufSkip:
         skipJson(p)
       else:
